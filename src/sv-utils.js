@@ -19,22 +19,21 @@ Object.keys(PILEUP_COLORS).map((x, i) => {
 });
 
 export const SV_TYPE = {
-  DUP: "Duplication",
-  DEL: "Deletion",
-  INV: "Inversion",
-  INS: "Insertion",
-  BND: "Translocation",
-}
+  DUP: 'Duplication',
+  DEL: 'Deletion',
+  INV: 'Inversion',
+  INS: 'Insertion',
+  BND: 'Translocation',
+};
 
 export const vcfRecordToJson = (vcfRecord, chrName, chrOffset) => {
   const segments = [];
   const info = vcfRecord['INFO'];
 
   const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
-  const sample = vcfRecord['SAMPLES'][samplesKey]
- 
-  if(vcfRecord['ALT'].length == 0)
-    return segments;
+  const sample = vcfRecord['SAMPLES'][samplesKey];
+
+  if (vcfRecord['ALT'].length == 0) return segments;
 
   const svType = info.SVTYPE[0];
 
@@ -45,9 +44,9 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset) => {
   let to = 0;
   // console.log(chrName,info.CHR2[0])
   // console.log(info.END[0])
-  if(chrName === info.CHR2[0]){
+  if (chrName === info.CHR2[0]) {
     to = info.END[0] + chrOffset;
-  }else{
+  } else {
     to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
   }
 
@@ -56,20 +55,20 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset) => {
   let calledByLumpy = false;
   let calledByBreakdancer = false;
 
-  if(info.CALLERS){
-    calledByDelly =  info.CALLERS.includes("DELLY");
-    calledByCnvnator = info.CALLERS.includes("CNVNATOR");
-    calledByLumpy = info.CALLERS.includes("LUMPY");
-    calledByBreakdancer = info.CALLERS.includes("BREAKDANCER");
+  if (info.CALLERS) {
+    calledByDelly = info.CALLERS.includes('DELLY');
+    calledByCnvnator = info.CALLERS.includes('CNVNATOR');
+    calledByLumpy = info.CALLERS.includes('LUMPY');
+    calledByBreakdancer = info.CALLERS.includes('BREAKDANCER');
   }
 
   const segment = {
     id: vcfRecord['ID'][0],
     svtype: svType,
     from: vcfRecord.POS + chrOffset,
-    fromDisp: chrName + ":" + vcfRecord.POS,
+    fromDisp: chrName + ':' + vcfRecord.POS,
     to: to,
-    toDisp: info.CHR2[0] + ":" + info.END[0],
+    toDisp: info.CHR2[0] + ':' + info.END[0],
     avglen: info.AVGLEN[0],
     chrName,
     chrOffset,
