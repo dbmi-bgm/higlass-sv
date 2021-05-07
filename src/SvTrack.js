@@ -29,7 +29,6 @@ function invY(p, t) {
   return (p - t.y) / t.k;
 }
 
-
 const scaleScalableGraphics = (graphics, xScale, drawnAtScale) => {
   const tileK =
     (drawnAtScale.domain()[1] - drawnAtScale.domain()[0]) /
@@ -40,7 +39,6 @@ const scaleScalableGraphics = (graphics, xScale, drawnAtScale) => {
   graphics.scale.x = tileK;
   graphics.position.x = -posOffset * tileK;
 };
-
 
 function eqSet(as, bs) {
   return as.size === bs.size && all(isIn(bs), as);
@@ -57,7 +55,6 @@ function isIn(as) {
   };
 }
 
-
 const SvTrack = (HGC, ...args) => {
   if (!new.target) {
     throw new Error(
@@ -67,7 +64,6 @@ const SvTrack = (HGC, ...args) => {
 
   class SvTrackClass extends HGC.tracks.Tiled1DPixiTrack {
     constructor(context, options) {
-
       const worker = spawn(BlobWorker.fromText(MyWorkerWeb));
 
       // this is where the threaded tile fetcher is called
@@ -76,28 +72,38 @@ const SvTrack = (HGC, ...args) => {
       context.dataFetcher.track = this;
 
       // Install BitmapFont, used by BitmapText later
-      HGC.libraries.PIXI.BitmapFont.from("SVLabel", {
-        fontFamily: "Arial",
-        fontSize: 23,
-        fontWeight: 500,
-        strokeThickness: 0,
-        fill: "#333333"
-      },{ chars: HGC.libraries.PIXI.BitmapFont.ASCII });
+      HGC.libraries.PIXI.BitmapFont.from(
+        'SVLabel',
+        {
+          fontFamily: 'Arial',
+          fontSize: 23,
+          fontWeight: 500,
+          strokeThickness: 0,
+          fill: '#333333',
+        },
+        { chars: HGC.libraries.PIXI.BitmapFont.ASCII },
+      );
 
-      HGC.libraries.PIXI.BitmapFont.from("FilterLabel", {
-        fontFamily: "Arial",
-        fontSize: 23,
-        fontWeight: 500,
-        strokeThickness: 0,
-        fill: "#ffffff"
-      },{ chars: HGC.libraries.PIXI.BitmapFont.ASCII });
+      HGC.libraries.PIXI.BitmapFont.from(
+        'FilterLabel',
+        {
+          fontFamily: 'Arial',
+          fontSize: 23,
+          fontWeight: 500,
+          strokeThickness: 0,
+          fill: '#ffffff',
+        },
+        { chars: HGC.libraries.PIXI.BitmapFont.ASCII },
+      );
 
-      const chromInfoDataPromise = this.getChromInfoDataPromise(context.dataConfig.chromSizesUrl)
+      const chromInfoDataPromise = this.getChromInfoDataPromise(
+        context.dataConfig.chromSizesUrl,
+      );
       // const chromInfoDataPromise = this.getChromInfoDataPromise(context.dataConfig.chromSizesUrl).then((value) => {
       //   this.chromInfo = value;
       // });
       this.variantAligner = new VariantAligner();
-      
+
       this.svData = [];
       this.visibleChromosomes = [];
       this.svDataPerChromosome = {};
@@ -112,10 +118,8 @@ const SvTrack = (HGC, ...args) => {
 
       this.labelGraphics = new HGC.libraries.PIXI.Graphics();
       this.pForeground.addChild(this.labelGraphics);
-      
+
       // this.dataPromises = this.getSvDataPromises(context.dataConfig);
-      
-      
 
       this.vcfFile = new TabixIndexedFile({
         filehandle: new RemoteFile(context.dataConfig.vcfUrl),
@@ -132,8 +136,6 @@ const SvTrack = (HGC, ...args) => {
         this.updateVisibleChromosomes(this._xScale);
         this.loadSvData();
       });
-     
-      
 
       this.worker = worker;
       this.valueScaleTransform = HGC.libraries.d3Zoom.zoomIdentity;
@@ -148,7 +150,6 @@ const SvTrack = (HGC, ...args) => {
       // we last rendered everything
       this.drawnAtScale = HGC.libraries.d3Scale.scaleLinear();
       this.variantsInView = [];
-      
 
       // graphics for highliting reads under the cursor
       this.mouseOverGraphics = new HGC.libraries.PIXI.Graphics();
@@ -187,8 +188,6 @@ const SvTrack = (HGC, ...args) => {
 
       this.pLabel.addChild(this.loadingText);
       this.setUpShaderAndTextures();
-
-
     }
 
     initTile(tile) {
@@ -196,70 +195,70 @@ const SvTrack = (HGC, ...args) => {
       tile.graphics.addChild(tile.bgGraphics);
     }
 
-    getChromInfoDataPromise(chromSizesUrl){
+    getChromInfoDataPromise(chromSizesUrl) {
       return new Promise((resolve) => {
         ChromosomeInfo(chromSizesUrl, resolve);
       });
     }
 
-    updateVisibleChromosomes(newXScale){
-      if(!this.chromInfo){
+    updateVisibleChromosomes(newXScale) {
+      if (!this.chromInfo) {
         return;
       }
 
       this.visibleChromosomes = [];
-      const chrA = absToChr(newXScale.domain()[0], this.chromInfo)[0]
-      const chrB = absToChr(newXScale.domain()[1], this.chromInfo)[0]
-      const chrAId = this.chromInfo.chrPositions[chrA].id
-      const chrBId = this.chromInfo.chrPositions[chrB].id
+      const chrA = absToChr(newXScale.domain()[0], this.chromInfo)[0];
+      const chrB = absToChr(newXScale.domain()[1], this.chromInfo)[0];
+      const chrAId = this.chromInfo.chrPositions[chrA].id;
+      const chrBId = this.chromInfo.chrPositions[chrB].id;
 
-      for(var i=chrAId; i<=chrBId; i++){
-        this.visibleChromosomes.push(this.chromInfo.cumPositions[i].chr)
+      for (var i = chrAId; i <= chrBId; i++) {
+        this.visibleChromosomes.push(this.chromInfo.cumPositions[i].chr);
       }
     }
 
-    loadSvData(){
-      if(!this.vcfHeader){
+    loadSvData() {
+      if (!this.vcfHeader) {
         return;
       }
-      if(!this.chromInfo){
+      if (!this.chromInfo) {
         return;
       }
-      
+
       this.visibleChromosomes.forEach((chr) => {
-        if (!(chr in this.svDataPerChromosome)){
+        if (!(chr in this.svDataPerChromosome)) {
           this.updateLoadingText();
           this.svDataPerChromosome[chr] = [];
           this.loadChrSvData(chr);
         }
-        
       });
-
-
     }
 
     // This can only be called then chromInfo has loaded
-    loadChrSvData(chr){
-      
+    loadChrSvData(chr) {
       const tbiVCFParser = new VCF({ header: this.vcfHeader });
       const { chromLengths, cumPositions, chrPositions } = this.chromInfo;
-      this.vcfFile.getLines(chr, 0, chromLengths[chr], (line) => {
-        const vcfRecord = tbiVCFParser.parseLine(line);
-        const vcfJson = vcfRecordToJson(
-          vcfRecord,
-          chr,
-          cumPositions[chrPositions[chr].id].pos
-        );
-        const segment = vcfJson[0];
-        this.svDataPerChromosome[chr].push(segment);
-        this.svData.push(segment);
-        //vcfJson.forEach((variant) => this.svData.push(variant));
-      }).then(() => {
-        this.variantAligner.segmentsToRows(this.svData, this.getSegmentsToRowFilter());
-        this.updateLoadingText();
-        this.updateExistingGraphics();
-      });
-      
+      this.vcfFile
+        .getLines(chr, 0, chromLengths[chr], (line) => {
+          const vcfRecord = tbiVCFParser.parseLine(line);
+          const vcfJson = vcfRecordToJson(
+            vcfRecord,
+            chr,
+            cumPositions[chrPositions[chr].id].pos,
+          );
+          const segment = vcfJson[0];
+          this.svDataPerChromosome[chr].push(segment);
+          this.svData.push(segment);
+          //vcfJson.forEach((variant) => this.svData.push(variant));
+        })
+        .then(() => {
+          this.variantAligner.segmentsToRows(
+            this.svData,
+            this.getSegmentsToRowFilter(),
+          );
+          this.updateLoadingText();
+          this.updateExistingGraphics();
+        });
     }
 
     getBoundsOfTile(tile) {
@@ -336,8 +335,7 @@ varying vec4 vColor;
     }
 
     rerender(options) {
-
-      super.rerender(options);   
+      super.rerender(options);
       this.options = options;
 
       if (this.options.showMousePosition && !this.hideMousePosition) {
@@ -353,39 +351,40 @@ varying vec4 vColor;
         this.hideMousePosition = undefined;
       }
 
-      if(
-        this.maxVariantLength !== this.options.maxVariantLength || 
+      if (
+        this.maxVariantLength !== this.options.maxVariantLength ||
         this.minVariantLength !== this.options.minVariantLength ||
         this.showDelly !== this.options.showDelly ||
         this.showLumpy !== this.options.showLumpy ||
         this.showBreakdancer !== this.options.showBreakdancer ||
         this.showCnvnator !== this.options.showCnvnator ||
         this.minSupport !== this.options.minSupport
-        ){
+      ) {
+        this.maxVariantLength = this.options.maxVariantLength;
+        this.minVariantLength = this.options.minVariantLength;
+        this.showDelly = this.options.showDelly;
+        this.showLumpy = this.options.showLumpy;
+        this.showBreakdancer = this.options.showBreakdancer;
+        this.showCnvnator = this.options.showCnvnator;
+        this.minSupport = this.options.minSupport;
 
-          this.maxVariantLength = this.options.maxVariantLength;
-          this.minVariantLength = this.options.minVariantLength;
-          this.showDelly = this.options.showDelly;
-          this.showLumpy = this.options.showLumpy;
-          this.showBreakdancer = this.options.showBreakdancer;
-          this.showCnvnator = this.options.showCnvnator;
-          this.minSupport = this.options.minSupport;
-
-          // We have to recompute the row number
-          this.svData.forEach((segment) => {
-            segment.row = null;
-          });
-          this.variantAligner.segmentsToRows(this.svData, this.getSegmentsToRowFilter());
-          // We have to regenerate labels when segment rows change
-          this.svTexts = {};
+        // We have to recompute the row number
+        this.svData.forEach((segment) => {
+          segment.row = null;
+        });
+        this.variantAligner.segmentsToRows(
+          this.svData,
+          this.getSegmentsToRowFilter(),
+        );
+        // We have to regenerate labels when segment rows change
+        this.svTexts = {};
       }
 
       this.setUpShaderAndTextures();
       this.updateExistingGraphics();
-      
     }
 
-    getSegmentsToRowFilter(){
+    getSegmentsToRowFilter() {
       return {
         minVariantLength: this.minVariantLength,
         maxVariantLength: this.maxVariantLength,
@@ -394,7 +393,7 @@ varying vec4 vColor;
         showBreakdancer: this.showBreakdancer,
         showCnvnator: this.showCnvnator,
         minSupport: this.minSupport,
-      }
+      };
     }
 
     updateExistingGraphics() {
@@ -414,8 +413,8 @@ varying vec4 vColor;
       });
       this.updateLoadingText();
 
-      if(this.svData.length === 0){
-        console.log("SV data has not loaded yet.")
+      if (this.svData.length === 0) {
+        console.log('SV data has not loaded yet.');
         return;
       }
 
@@ -427,7 +426,7 @@ varying vec4 vColor;
             this._xScale.domain(),
             this._xScale.range(),
             this.options,
-            this.svData
+            this.svData,
           )
           .then((toRender) => {
             this.loadingText.visible = false;
@@ -518,7 +517,10 @@ varying vec4 vColor;
         return;
       }
 
-      if(this.visibleChromosomes.length > Object.keys(this.svDataPerChromosome).length){
+      if (
+        this.visibleChromosomes.length >
+        Object.keys(this.svDataPerChromosome).length
+      ) {
         this.loadingText.text = 'Loading variants...';
         return;
       }
@@ -547,8 +549,7 @@ varying vec4 vColor;
           trackY <= variant.yTop + vHeight + 1,
       );
 
-      if(filteredList.length === 0)
-        return '';
+      if (filteredList.length === 0) return '';
 
       const variant = filteredList[0];
 
@@ -571,14 +572,13 @@ varying vec4 vColor;
         vHeight,
       );
       this.animate();
-      let callers = "-";
-      if(variant.callers){
+      let callers = '-';
+      if (variant.callers) {
         callers = variant.callers
           .map((caller) => caller.toLowerCase())
           .map((caller) => this.capitalizeFirstLetter(caller))
           .join(', ');
       }
-      
 
       let mouseOverHtml =
         `<table>` +
@@ -592,7 +592,6 @@ varying vec4 vColor;
         `<table>`;
 
       return mouseOverHtml;
-
     }
 
     capitalizeFirstLetter(string) {
@@ -654,44 +653,47 @@ varying vec4 vColor;
       this.updateVisibleChromosomes(this._xScale);
       this.updateSvLabels();
       this.loadSvData();
-            
+
       this.mouseOverGraphics.clear();
       this.animate();
     }
 
-    updateSvLabels(){
-
+    updateSvLabels() {
       this.textGraphics.removeChildren();
       const padding = 5;
 
       this.variantsInView.forEach((segment) => {
-
         const segFrom = this._xScale(segment.from);
         const segTo = this._xScale(segment.to);
         const segmentWidth = segTo - segFrom;
 
         // Rectangle too small - we can't display anything
-        if(segmentWidth < 60)
-          return;
+        if (segmentWidth < 60) return;
 
-        if(!(segment.id in this.svTexts)){
-          const label = segment.svtype + ", " + segment.avglen + "bp, GT:" + segment.gt;
-          this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {fontName: "SVLabel"});
+        if (!(segment.id in this.svTexts)) {
+          const label =
+            segment.svtype + ', ' + segment.avglen + 'bp, GT:' + segment.gt;
+          this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {
+            fontName: 'SVLabel',
+          });
           this.svTexts[segment.id].width = this.svTexts[segment.id].width / 2;
           this.svTexts[segment.id].height = this.svTexts[segment.id].height / 2;
-          this.svTexts[segment.id].position.y = segment.row * (this.options.variantHeight+2)+1;
+          this.svTexts[segment.id].position.y =
+            segment.row * (this.options.variantHeight + 2) + 1;
         }
         const textWidth = this.svTexts[segment.id].width;
 
-        const margin = segmentWidth - textWidth - 2*padding
-        if(margin < 0)
-          return;
+        const margin = segmentWidth - textWidth - 2 * padding;
+        if (margin < 0) return;
 
-        if(segFrom >= 0){
+        if (segFrom >= 0) {
           this.svTexts[segment.id].position.x = segFrom + padding;
-        }else if(textWidth + 2*padding < segTo){
-          this.svTexts[segment.id].position.x = Math.max(padding,segFrom + padding);
-        }else{
+        } else if (textWidth + 2 * padding < segTo) {
+          this.svTexts[segment.id].position.x = Math.max(
+            padding,
+            segFrom + padding,
+          );
+        } else {
           this.svTexts[segment.id].position.x = segTo - textWidth - padding;
         }
 
@@ -699,52 +701,56 @@ varying vec4 vColor;
 
         if (margin < 10 && margin >= 0) {
           // gracefully fade out
-          const alphaScale = HGC.libraries.d3Scale.scaleLinear()
+          const alphaScale = HGC.libraries.d3Scale
+            .scaleLinear()
             .domain([2, 10])
             .range([0, 1])
             .clamp(true);
-            labelAlpha = alphaScale(margin);
+          labelAlpha = alphaScale(margin);
         }
 
         this.svTexts[segment.id].alpha = labelAlpha;
         this.textGraphics.addChild(this.svTexts[segment.id]);
       });
-
     }
 
-    updateFilterNotice(){
+    updateFilterNotice() {
       this.labelGraphics.removeChildren();
       this.labelGraphics.clear();
 
-      if(this.numFilteredVariants < this.numVisibleVariants){
+      if (this.numFilteredVariants < this.numVisibleVariants) {
         const paddingX = 5;
         const paddingY = 2;
-        
-  
+
         const label = `${this.numFilteredVariants} / ${this.numVisibleVariants} SV calls visible`;
-        const bitmapText = new HGC.libraries.PIXI.BitmapText(label, {fontName: "FilterLabel"});
+        const bitmapText = new HGC.libraries.PIXI.BitmapText(label, {
+          fontName: 'FilterLabel',
+        });
         bitmapText.width = bitmapText.width / 2;
         bitmapText.height = bitmapText.height / 2;
-        bitmapText.position.x = this.dimensions[0] - bitmapText.width - paddingX;
-        bitmapText.position.y = this.dimensions[1] - bitmapText.height - paddingY;
-  
-        this.labelGraphics.beginFill(0xFFFFFF);
+        bitmapText.position.x =
+          this.dimensions[0] - bitmapText.width - paddingX;
+        bitmapText.position.y =
+          this.dimensions[1] - bitmapText.height - paddingY;
+
+        this.labelGraphics.beginFill(0xffffff);
         this.labelGraphics.drawRect(
-          bitmapText.position.x - paddingX - 2, 
-          bitmapText.position.y - paddingY - 2, 
-          bitmapText.width + 2*paddingX + 2, 
-          bitmapText.height + 2*paddingY + 2);
+          bitmapText.position.x - paddingX - 2,
+          bitmapText.position.y - paddingY - 2,
+          bitmapText.width + 2 * paddingX + 2,
+          bitmapText.height + 2 * paddingY + 2,
+        );
 
         this.labelGraphics.beginFill(0x999999);
         this.labelGraphics.drawRect(
-          bitmapText.position.x - paddingX, 
-          bitmapText.position.y - paddingY, 
-          bitmapText.width + 2*paddingX, 
-          bitmapText.height + 2*paddingY);
-  
+          bitmapText.position.x - paddingX,
+          bitmapText.position.y - paddingY,
+          bitmapText.width + 2 * paddingX,
+          bitmapText.height + 2 * paddingY,
+        );
+
         this.labelGraphics.addChild(bitmapText);
       }
-      
     }
 
     exportSVG() {
@@ -805,7 +811,8 @@ varying vec4 vColor;
   return new SvTrackClass(...args);
 };
 
-const icon = '<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"> <!-- Created with Method Draw - http://github.com/duopixel/Method-Draw/ --> <g> <title>background</title> <rect fill="#fff" id="canvas_background" height="18" width="18" y="-1" x="-1"/> <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid"> <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/> </g> </g> <g> <title>Layer 1</title> <rect id="svg_1" height="0.5625" width="2.99997" y="3.21586" x="1.18756" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_3" height="0.5625" width="2.99997" y="7.71582" x="6.06252" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_4" height="0.5625" width="2.99997" y="3.21586" x="1.18756" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_5" height="0.5625" width="2.99997" y="3.90336" x="11.49997" stroke-width="1.5" stroke="#f73500" fill="#000"/> <rect id="svg_6" height="0.5625" width="2.99997" y="7.40333" x="11.62497" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_7" height="0.5625" width="2.99997" y="13.90327" x="5.93752" stroke-width="1.5" stroke="#f4f40e" fill="#000"/> </g> </svg>';
+const icon =
+  '<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"> <!-- Created with Method Draw - http://github.com/duopixel/Method-Draw/ --> <g> <title>background</title> <rect fill="#fff" id="canvas_background" height="18" width="18" y="-1" x="-1"/> <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid"> <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/> </g> </g> <g> <title>Layer 1</title> <rect id="svg_1" height="0.5625" width="2.99997" y="3.21586" x="1.18756" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_3" height="0.5625" width="2.99997" y="7.71582" x="6.06252" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_4" height="0.5625" width="2.99997" y="3.21586" x="1.18756" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_5" height="0.5625" width="2.99997" y="3.90336" x="11.49997" stroke-width="1.5" stroke="#f73500" fill="#000"/> <rect id="svg_6" height="0.5625" width="2.99997" y="7.40333" x="11.62497" stroke-width="1.5" stroke="#999999" fill="#000"/> <rect id="svg_7" height="0.5625" width="2.99997" y="13.90327" x="5.93752" stroke-width="1.5" stroke="#f4f40e" fill="#000"/> </g> </svg>';
 
 SvTrack.config = {
   type: 'sv',
@@ -833,7 +840,7 @@ SvTrack.config = {
       [1, 0.0, 0.0, 0.55],
       [0.68, 0.23, 0.87, 0.8],
       [0.26, 0.52, 0.95, 0.8],
-      [0.27, 0.64, 0.09, 0.8]
+      [0.27, 0.64, 0.09, 0.8],
     ],
     showMousePosition: false,
     variantHeight: 13,
@@ -843,7 +850,7 @@ SvTrack.config = {
     showCnvnator: true,
     showLumpy: true,
     showBreakdancer: true,
-    minSupport: 1
+    minSupport: 1,
   },
   optionsInfo: {
     minVariantLength: {
@@ -898,7 +905,7 @@ SvTrack.config = {
         no: {
           value: false,
           name: 'False',
-        }
+        },
       },
     },
     showLumpy: {
@@ -911,7 +918,7 @@ SvTrack.config = {
         no: {
           value: false,
           name: 'False',
-        }
+        },
       },
     },
     showBreakdancer: {
@@ -924,7 +931,7 @@ SvTrack.config = {
         no: {
           value: false,
           name: 'False',
-        }
+        },
       },
     },
     showCnvnator: {
@@ -937,7 +944,7 @@ SvTrack.config = {
         no: {
           value: false,
           name: 'False',
-        }
+        },
       },
     },
     minSupport: {
@@ -958,7 +965,7 @@ SvTrack.config = {
         four: {
           value: 4,
           name: '4',
-        }
+        },
       },
     },
     colorScale: {
@@ -971,7 +978,7 @@ SvTrack.config = {
             [1, 0.0, 0.0, 0.55],
             [0.68, 0.23, 0.87, 0.8],
             [0.26, 0.52, 0.95, 0.8],
-            [0.27, 0.64, 0.09, 0.8]
+            [0.27, 0.64, 0.09, 0.8],
           ],
           name: 'Default',
         },
