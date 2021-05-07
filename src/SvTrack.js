@@ -672,7 +672,7 @@ varying vec4 vColor;
 
         if (!(segment.id in this.svTexts)) {
           const label =
-            segment.svtype + ', ' + segment.avglen + 'bp, GT:' + segment.gt;
+            segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
           this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {
             fontName: 'SVLabel',
           });
