@@ -76,7 +76,7 @@ const SvTrack = (HGC, ...args) => {
         'SVLabel',
         {
           fontFamily: 'Arial',
-          fontSize: 23,
+          fontSize: 25,
           fontWeight: 500,
           strokeThickness: 0,
           fill: '#333333',
@@ -843,7 +843,7 @@ SvTrack.config = {
       [0.27, 0.64, 0.09, 0.8],
     ],
     showMousePosition: false,
-    variantHeight: 13,
+    variantHeight: 14,
     minVariantLength: 1,
     maxVariantLength: Number.MAX_SAFE_INTEGER,
     showDelly: true,
