@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="author" content="Peter Kerpedjiev">
+  <meta name="description" content="A plugin track to display GnomAd data in HiGlass">
+  <meta name="keywords" content="HiGlass, Plugin Tracks">
+
+  <title>HiGlass SV Track</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
+  <link rel="stylesheet" href="hglib.css">
+
+  <style type="text/css">
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #demo {
+      position: absolute;
+      left: 1rem;
+      top: 1rem;
+      bottom: 1rem;
+      right: 1rem;
+    }
+  </style>
+
+<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+<script crossorigin src="https://unpkg.com/pixi.js-legacy@5/dist/pixi-legacy.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.32.1/react-bootstrap.min.js"></script>
+</head>
+<body>
+  <div id="demo"></div>
+</body>
+<script crossorigin src="https://unpkg.com/higlass-sequence/dist/higlass-sequence.js"></script>
+<script src="hglib.js"></script>
+<script>
+const testViewConfig =
+{
+  "editable": true,
+  "trackSourceServers": [
+    "/api/v1",
+    "http://higlass.io/api/v1"
+  ],
+  "exportViewUrl": "/api/v1/viewconfs",
+  "views": [
+    {
+
+      //"initialXDomain": [10026087.639179552, 10026405.897125244],
+      "initialXDomain": [3376000,3390000],
+
+
+
+      "initialYDomain": [
+        180520.26598912096,
+        180863.4346387336
+      ],
+      "tracks": {
+        "top": [
+        {
+            "type": "horizontal-gene-annotations",
+            "height": 60,
+            "tilesetUid": "OHJakQICQD6gTD7skx4EWA",
+            "server": "//higlass.io/api/v1",
+            "uid": "OHJakQICQD6gTD7skx4EWA",
+            "options": {
+              "name": "Gene Annotations (hg19)",
+              "fontSize": 10,
+              "labelColor": "black",
+              "labelBackgroundColor": "#ffffff",
+              "labelPosition": "hidden",
+              "labelLeftMargin": 0,
+              "labelRightMargin": 0,
+              "labelTopMargin": 0,
+              "labelBottomMargin": 0,
+              "minHeight": 24,
+              "plusStrandColor": "blue",
+              "minusStrandColor": "red",
+              "trackBorderWidth": 0,
+              "trackBorderColor": "black",
+              "showMousePosition": false,
+              "mousePositionColor": "#000000",
+              "geneAnnotationHeight": 16,
+              "geneLabelPosition": "outside",
+              "geneStrandSpacing": 4
+            }
+          },
+          {
+            "uid": "AdlJsUYFRzuJRZyYeKDX2A",
+            "type": "chromosome-labels",
+            "width": 811,
+            "height": 30,
+            "server": "//higlass.io/api/v1",
+            "options": {
+              "color": "#808080",
+              "stroke": "#ffffff",
+              "fontSize": 12,
+              "fontIsLeftAligned": false,
+              "showMousePosition": false,
+              "mousePositionColor": "#000000"
+            },
+            "filetype": "chromsizes-tsv",
+            "tilesetUid": "NyITQvZsS_mOFNlz5C2LJg"
+          },
+          {
+            "uid": "emty",
+            "type": "empty",
+            "width": 811,
+            "height": 10,
+            "tilesetUid": "emtyt"
+          },
+          {
+          "type": "sv",
+            "options": {},
+            "height": 200,
+            "uid": "FylkvVBTSumoJ959HT4-5B",
+            "data": {
+              "type": "vcf",
+              // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/chr1_gnomad.test.indexed.vcf.gz",
+              // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/chr1_gnomad.test.indexed.vcf.gz.tbi",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/sv_test.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/sv_test.vcf.gz.tbi",
+              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+            },
+            "width": 470
+          }
+        ],
+        "left": [],
+        "center": [],
+        "bottom": [],
+        "right": [],
+        "whole": [],
+        "gallery": []
+      },
+      "layout": {
+        "w": 12,
+        "h": 6,
+        "x": 0,
+        "y": 0
+      },
+      "uid": "WdlA7F8aTY2gXQzPGiBlwQ"
+    }
+  ],
+  "zoomLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  },
+  "locationLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  },
+  "valueScaleLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  }
+}
+
+window.hglib.viewer(
+  document.getElementById('demo'),
+  testViewConfig,
+  {
+    bounded: true,
+  },
+);
+</script>
+</html>
