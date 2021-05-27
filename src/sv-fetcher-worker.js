@@ -181,6 +181,10 @@ const renderSegments = (
   const segmentList = visibleVariants.filter((segment) => 
     segment.row !== null);
 
+  // console.log("------");
+  // console.log(visibleVariants);
+  // console.log(segmentList);
+
   let currPosition = 0;
   let currColor = 0;
   let currIdx = 0;

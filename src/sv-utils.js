@@ -26,65 +26,118 @@ export const SV_TYPE = {
   BND: 'Translocation',
 };
 
-export const vcfRecordToJson = (vcfRecord, chrName, chrOffset) => {
+export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
   const segments = [];
   const info = vcfRecord['INFO'];
-
-  const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
-  const sample = vcfRecord['SAMPLES'][samplesKey];
 
   if (vcfRecord['ALT'].length == 0) return segments;
 
   const svType = info.SVTYPE[0];
 
-  // We are excluding translocations at the moment
-  // if(svType == "BND")
-  //   return segments;
+  let segment = {};
+  
+  if(dataSource === "gnomad"){
 
-  let to = 0;
-  // console.log(chrName,info.CHR2[0])
-  // console.log(info.END[0])
-  if (chrName === info.CHR2[0]) {
-    to = info.END[0] + chrOffset;
-  } else {
-    to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
+    let to = info.END[0] + chrOffset;
+    let toDisp = info.END[0];
+
+    segment = {
+      id: vcfRecord['ID'][0],
+      svtype: svType,
+      from: vcfRecord.POS + chrOffset,
+      fromDisp: chrName + ':' + vcfRecord.POS,
+      to: to,
+      toDisp: chrName + ':' + toDisp,
+      avglen: info.SVLEN[0],
+      chrName,
+      chrOffset,
+      filter: null,
+      row: null,
+      AF: info.AF[0],
+      AC: info.AC[0],
+      AN: info.AN[0],
+      // AFR_AF: info.AFR_AF[0],
+      // AFR_AC: info.AFR_AC[0],
+      // AFR_AN: info.AFR_AN[0],
+      // AMR_AF: info.AMR_AF[0],
+      // AMR_AC: info.AMR_AC[0],
+      // AMR_AN: info.AMR_AN[0],
+      // EAS_AF: info.EAS_AF[0],
+      // EAS_AC: info.EAS_AC[0],
+      // EAS_AN: info.EAS_AN[0],
+      // EUR_AF: info.EUR_AF[0],
+      // EUR_AC: info.EUR_AC[0],
+      // EUR_AN: info.EUR_AN[0],
+      // OTH_AF: info.OTH_AF[0],
+      // OTH_AC: info.OTH_AC[0],
+      // OTH_AN: info.OTH_AN[0],
+    };
+    
+  }
+  else{
+
+    const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
+    const sample = vcfRecord['SAMPLES'][samplesKey];
+
+    let to = 0;
+    let toDisp = 0;
+
+    if (chrName === info.CHR2[0] && svType === "INS" && +vcfRecord.POS === +info.END[0]) {
+      to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
+      toDisp = vcfRecord.POS + info.AVGLEN[0];
+    }
+    else if (chrName === info.CHR2[0]) {
+      to = info.END[0] + chrOffset;
+      toDisp = info.END[0];
+    } else {
+      to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
+      toDisp = vcfRecord.POS + info.AVGLEN[0];
+    }
+
+    let calledByDelly = false;
+    let calledByCnvnator = false;
+    let calledByLumpy = false;
+    let calledByBreakdancer = false;
+    let calledByBreakseq2 = false;
+    let calledByManta = false;
+
+    if (info.CALLERS) {
+      calledByDelly = info.CALLERS.includes('DELLY');
+      calledByCnvnator = info.CALLERS.includes('CNVNATOR');
+      calledByLumpy = info.CALLERS.includes('LUMPY');
+      calledByBreakdancer = info.CALLERS.includes('BREAKDANCER');
+      calledByBreakseq2 = info.CALLERS.includes('BREAKSEQ');
+      calledByManta = info.CALLERS.includes('MANTA');
+    }
+
+    segment = {
+      id: vcfRecord['ID'][0],
+      svtype: svType,
+      from: vcfRecord.POS + chrOffset,
+      fromDisp: chrName + ':' + vcfRecord.POS,
+      to: to,
+      toDisp: info.CHR2[0] + ':' + toDisp,
+      avglen: info.AVGLEN[0],
+      chrName,
+      chrOffset,
+      filter: vcfRecord['FILTER'][0],
+      cipos: info.CIPOS, //PE confidence interval around POS
+      ciend: info.CIEND, //PE confidence interval around END
+      callers: info.CALLERS,
+      supp: info.SUPP[0], //Number of callers supporting the variant
+      suppVec: info.SUPP_VEC[0], //Vector of supporting samples.
+      gt: sample['GT'][0],
+      row: null,
+      calledByDelly: calledByDelly,
+      calledByCnvnator: calledByCnvnator,
+      calledByLumpy: calledByLumpy,
+      calledByBreakdancer: calledByBreakdancer,
+      calledByBreakseq2: calledByBreakseq2,
+      calledByManta: calledByManta,
+    };
+
   }
 
-  let calledByDelly = false;
-  let calledByCnvnator = false;
-  let calledByLumpy = false;
-  let calledByBreakdancer = false;
-
-  if (info.CALLERS) {
-    calledByDelly = info.CALLERS.includes('DELLY');
-    calledByCnvnator = info.CALLERS.includes('CNVNATOR');
-    calledByLumpy = info.CALLERS.includes('LUMPY');
-    calledByBreakdancer = info.CALLERS.includes('BREAKDANCER');
-  }
-
-  const segment = {
-    id: vcfRecord['ID'][0],
-    svtype: svType,
-    from: vcfRecord.POS + chrOffset,
-    fromDisp: chrName + ':' + vcfRecord.POS,
-    to: to,
-    toDisp: info.CHR2[0] + ':' + info.END[0],
-    avglen: info.AVGLEN[0],
-    chrName,
-    chrOffset,
-    filter: vcfRecord['FILTER'][0],
-    cipos: info.CIPOS, //PE confidence interval around POS
-    ciend: info.CIEND, //PE confidence interval around END
-    callers: info.CALLERS,
-    supp: info.SUPP[0], //Number of callers supporting the variant
-    suppVec: info.SUPP_VEC[0], //Vector of supporting samples.
-    gt: sample['GT'][0],
-    row: null,
-    calledByDelly: calledByDelly,
-    calledByCnvnator: calledByCnvnator,
-    calledByLumpy: calledByLumpy,
-    calledByBreakdancer: calledByBreakdancer,
-  };
 
   segments.push(segment);
 

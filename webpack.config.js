@@ -54,6 +54,8 @@ const libraryConfig = {
     contentBase: [path.join(__dirname, 'node_modules/higlass/dist')],
     watchContentBase: true,
     writeToDisk: true,
+    port: 8081,
+    open: true
   },
   optimization: {
     minimizer: [

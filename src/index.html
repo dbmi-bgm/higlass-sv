@@ -27,7 +27,8 @@
 
 <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
-<script crossorigin src="https://unpkg.com/pixi.js-legacy@5/dist/pixi-legacy.js"></script>
+<!-- <script crossorigin src="https://unpkg.com/pixi.js-legacy@5/dist/pixi-legacy.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.3.9/pixi.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.32.1/react-bootstrap.min.js"></script>
 </head>
 <body>
@@ -56,6 +57,14 @@
           <input class="form-check-input" type="checkbox" id="sv-show-cnvnator" checked>
           <label class="form-check-label" for="sv-show-cnvnator">CNVnator</label>
         </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-breakseq2" checked>
+          <label class="form-check-label" for="sv-show-breakseq2">Breakseq2</label>
+        </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-manta" checked>
+          <label class="form-check-label" for="sv-show-manta">Manta</label>
+        </div>
         <div class="p-2 bg-light">
           Called by at least <input id="sv-min-support" class="form-control form-control-sm d-inline-block" style="width:40px;" type="text" value="1"> callers
         </div>
@@ -79,10 +88,11 @@
     
   </div>
   <div>
-    <div id="demo"></div>
+    <div id="demo" style="height:5000px"></div>
   </div>
 </body>
 <script crossorigin src="https://unpkg.com/higlass-sequence/dist/higlass-sequence.js"></script>
+<script crossorigin src="https://unpkg.com/higlass-text/dist/higlass-text.js"></script>
 <script src="hglib.js"></script>
 <script>
 
@@ -91,6 +101,8 @@ function saveSvFilter(){
   const showLumpy = document.getElementById("sv-show-lumpy").checked;
   const showBreakdancer = document.getElementById("sv-show-breakdancer").checked;
   const showCnvnator = document.getElementById("sv-show-cnvnator").checked;
+  const showBreakseq2 = document.getElementById("sv-show-breakseq2").checked;
+  const showManta = document.getElementById("sv-show-manta").checked;
   const minSupport = parseInt(document.getElementById("sv-min-support").value, 10);
   const minVariantLength = parseInt(document.getElementById("sv-min-length").value, 10);
   const maxVariantLength = parseInt(document.getElementById("sv-max-length").value, 10);
@@ -98,11 +110,13 @@ function saveSvFilter(){
   const viewconf = hgApi.getViewConfig();
   viewconf.views.forEach((view) => {
     view.tracks.top.forEach((track) => {
-      if(track.type === "sv"){
+      if(track.type === "sv" && track.options.dataSource === "parliament2"){
         track.options.showDelly = showDelly;
         track.options.showLumpy = showLumpy;
         track.options.showBreakdancer = showBreakdancer;
         track.options.showCnvnator = showCnvnator;
+        track.options.showBreakseq2 = showBreakseq2;
+        track.options.showManta = showManta;
         track.options.minSupport = minSupport;
         track.options.minVariantLength = minVariantLength;
         track.options.maxVariantLength = maxVariantLength;
@@ -125,8 +139,8 @@ const testViewConfig =
   "views": [
     {
 
-      //"initialXDomain": [10026087.639179552, 10026405.897125244],
-      "initialXDomain": [3376000,3390000],
+      "initialXDomain": [1000026087.639179552, 1000026405.897125244],
+      //"initialXDomain": [3376000,3390000],
 
 
 
@@ -189,20 +203,177 @@ const testViewConfig =
             "tilesetUid": "emtyt"
           },
           {
+            "uid": "texttrack1",
+            "type": "text",
+            "options": {
+              "backgroundColor": "#ededed",
+              "textColor": "#333333",
+              "fontSize": 12,
+              "fontFamily": "Arial",
+              "fontWeight": "bold",
+              "offsetY": 1, // offset from the top of the track
+              "align": "left", // left, middle, right
+              "text": "Text to display 1",
+            },
+            "width": 568,
+            "height": 18
+          },
+          {
           "type": "sv",
-            "options": {},
-            "height": 200,
-            "uid": "FylkvVBTSumoJ959HT4-5B",
+            "options": {
+              "dataSource": "parliament2"
+            },
+            "height": 100,
+            "uid": "vcf1",
             "data": {
               "type": "vcf",
-              // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/chr1_gnomad.test.indexed.vcf.gz",
-              // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/chr1_gnomad.test.indexed.vcf.gz.tbi",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/sv_test.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/sv_test.vcf.gz.tbi",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
               "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
             },
             "width": 470
-          }
+          },
+          {
+            "uid": "texttrack2",
+            "type": "text",
+            "options": {
+              "backgroundColor": "#ededed",
+              "textColor": "#333333",
+              "fontSize": 12,
+              "fontFamily": "Arial",
+              "fontWeight": "bold",
+              "offsetY": 1, // offset from the top of the track
+              "align": "left", // left, middle, right
+              "text": "Text to display 2",
+            },
+            "width": 568,
+            "height": 18
+          },
+          {
+          "type": "sv",
+            "options": {
+              "dataSource": "parliament2"
+            },
+            "height": 100,
+            "uid": "vcf2",
+            "data": {
+              "type": "vcf",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+            },
+            "width": 470
+          },
+          {
+            "uid": "texttrack3",
+            "type": "text",
+            "options": {
+              "backgroundColor": "#ededed",
+              "textColor": "#333333",
+              "fontSize": 12,
+              "fontFamily": "Arial",
+              "fontWeight": "bold",
+              "offsetY": 1, // offset from the top of the track
+              "align": "left", // left, middle, right
+              "text": "Text to display 3",
+            },
+            "width": 568,
+            "height": 18
+          },
+          {
+          "type": "sv",
+            "options": {
+              "dataSource": "parliament2"
+            },
+            "height": 100,
+            "uid": "vcf3",
+            "data": {
+              "type": "vcf",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+            },
+            "width": 470
+          },
+          {
+            "uid": "texttrack4",
+            "type": "text",
+            "options": {
+              "backgroundColor": "#ededed",
+              "textColor": "#333333",
+              "fontSize": 12,
+              "fontFamily": "Arial",
+              "fontWeight": "bold",
+              "offsetY": 1, // offset from the top of the track
+              "align": "left", // left, middle, right
+              "text": "Text to display 4",
+            },
+            "width": 568,
+            "height": 18
+          },
+          {
+          "type": "sv",
+            "options": {
+              "dataSource": "parliament2"
+            },
+            "height": 100,
+            "uid": "vcf4",
+            "data": {
+              "type": "vcf",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+            },
+            "width": 470
+          },
+          {
+            "uid": "texttrack5",
+            "type": "text",
+            "options": {
+              "backgroundColor": "#ededed",
+              "textColor": "#333333",
+              "fontSize": 12,
+              "fontFamily": "Arial",
+              "fontWeight": "bold",
+              "offsetY": 1, // offset from the top of the track
+              "align": "left", // left, middle, right
+              "text": "Text to display 5",
+            },
+            "width": 568,
+            "height": 18
+          },
+          {
+          "type": "sv",
+            "options": {
+              "dataSource": "parliament2"
+            },
+            "height": 100,
+            "uid": "vcf5",
+            "data": {
+              "type": "vcf",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+            },
+            "width": 470
+          },
+          // {
+          // "type": "sv",
+          //   "options": {
+          //     "dataSource": "gnomad"
+          //   },
+          //   "height": 150,
+          //   "uid": "FylkvVBTSumoJ959HT4-5C",
+          //   "data": {
+          //     "type": "vcf",
+          //     // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz",
+          //     // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz.tbi",
+          //     "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz",
+          //     "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz.tbi",
+          //     "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+          //   },
+          //   "width": 470
+          // }
         ],
         "left": [],
         "center": [],
@@ -213,7 +384,7 @@ const testViewConfig =
       },
       "layout": {
         "w": 12,
-        "h": 6,
+        "h": 12,
         "x": 0,
         "y": 0
       },
@@ -238,7 +409,7 @@ const hgApi = window.hglib.viewer(
   document.getElementById('demo'),
   testViewConfig,
   {
-    bounded: true,
+    bounded: false,
   },
 );
 </script>

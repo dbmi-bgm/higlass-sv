@@ -43,7 +43,7 @@ class VariantAligner {
    
   }
 
-  segmentsToRows(segments, filter) {
+  segmentsToRows(segments, filter, dataSource) {
     const padding = 5;
 
 
@@ -52,19 +52,28 @@ class VariantAligner {
     // This means that in row i, the space from 100 to 110 is occupied and reads cannot be placed there
     // This array is updated with every segment that is added to the scene
     let occupiedSpaceInRows = [];
+    let filteredSegments = {};
 
-    const filteredSegments = segments.filter(
-      (x) => x.row === null && 
-      (x.to-x.from >= filter.minVariantLength) && 
-      (x.to-x.from <= filter.maxVariantLength) &&
-      ( (x.calledByLumpy && filter.showLumpy) || 
-        (x.calledByDelly && filter.showDelly) ||
-        (x.calledByBreakdancer && filter.showBreakdancer) ||
-        (x.calledByCnvnator && filter.showCnvnator) ||
-        // calls can be confirmed by SVTyper without having a CALLER in the info field
-        x.callers === undefined) &&
-      x.supp >= filter.minSupport
-      );
+    if(dataSource === "gnomad"){
+      filteredSegments = segments.filter((x) => x.row === null);
+    }
+    else{
+      filteredSegments = segments.filter(
+        (x) => x.row === null && 
+        (x.to-x.from >= filter.minVariantLength) && 
+        (x.to-x.from <= filter.maxVariantLength) &&
+        ( (x.calledByLumpy && filter.showLumpy) || 
+          (x.calledByDelly && filter.showDelly) ||
+          (x.calledByBreakdancer && filter.showBreakdancer) ||
+          (x.calledByCnvnator && filter.showCnvnator) ||
+          (x.calledByBreakseq2 && filter.showBreakseq2) ||
+          (x.calledByManta && filter.showManta) ||
+          // calls can be confirmed by SVTyper without having a CALLER in the info field
+          x.callers === undefined) &&
+        x.supp >= filter.minSupport
+        );
+    }
+
     filteredSegments.sort((a, b) => a.from - b.from);
     filteredSegments.forEach((segment) => {
       this.assignSegmentToRow(segment, occupiedSpaceInRows, padding);

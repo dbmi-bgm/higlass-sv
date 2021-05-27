@@ -184,6 +184,8 @@ const SvTrack = (HGC, ...args) => {
       this.showLumpy = this.options.showLumpy;
       this.showBreakdancer = this.options.showBreakdancer;
       this.showCnvnator = this.options.showCnvnator;
+      this.showBreakseq2 = this.options.showBreakseq2;
+      this.showManta = this.options.showManta;
       this.minSupport = this.options.minSupport;
 
       this.pLabel.addChild(this.loadingText);
@@ -233,6 +235,7 @@ const SvTrack = (HGC, ...args) => {
         }
       });
     }
+    
 
     // This can only be called then chromInfo has loaded
     loadChrSvData(chr) {
@@ -241,10 +244,19 @@ const SvTrack = (HGC, ...args) => {
       this.vcfFile
         .getLines(chr, 0, chromLengths[chr], (line) => {
           const vcfRecord = tbiVCFParser.parseLine(line);
+
+
+          // Don't load translocations for now
+          // Gnomad SV does not contain BNDs
+          if(vcfRecord.INFO.SVTYPE[0] === "BND"){
+            return;
+          }
+          
           const vcfJson = vcfRecordToJson(
             vcfRecord,
             chr,
             cumPositions[chrPositions[chr].id].pos,
+            this.options.dataSource
           );
           const segment = vcfJson[0];
           this.svDataPerChromosome[chr].push(segment);
@@ -255,6 +267,7 @@ const SvTrack = (HGC, ...args) => {
           this.variantAligner.segmentsToRows(
             this.svData,
             this.getSegmentsToRowFilter(),
+            this.options.dataSource
           );
           this.updateLoadingText();
           this.updateExistingGraphics();
@@ -358,6 +371,8 @@ varying vec4 vColor;
         this.showLumpy !== this.options.showLumpy ||
         this.showBreakdancer !== this.options.showBreakdancer ||
         this.showCnvnator !== this.options.showCnvnator ||
+        this.showBreakseq2 !== this.options.showBreakseq2 ||
+        this.showManta !== this.options.showManta ||
         this.minSupport !== this.options.minSupport
       ) {
         this.maxVariantLength = this.options.maxVariantLength;
@@ -366,6 +381,8 @@ varying vec4 vColor;
         this.showLumpy = this.options.showLumpy;
         this.showBreakdancer = this.options.showBreakdancer;
         this.showCnvnator = this.options.showCnvnator;
+        this.showBreakseq2 = this.options.showBreakseq2;
+        this.showManta = this.options.showManta;
         this.minSupport = this.options.minSupport;
 
         // We have to recompute the row number
@@ -375,6 +392,7 @@ varying vec4 vColor;
         this.variantAligner.segmentsToRows(
           this.svData,
           this.getSegmentsToRowFilter(),
+          this.options.dataSource
         );
         // We have to regenerate labels when segment rows change
         this.svTexts = {};
@@ -392,6 +410,8 @@ varying vec4 vColor;
         showLumpy: this.showLumpy,
         showBreakdancer: this.showBreakdancer,
         showCnvnator: this.showCnvnator,
+        showBreakseq2: this.showBreakseq2,
+        showManta: this.showManta,
         minSupport: this.minSupport,
       };
     }
@@ -552,15 +572,12 @@ varying vec4 vColor;
       if (filteredList.length === 0) return '';
 
       const variant = filteredList[0];
-
-      const fontStyle = `line-height: 12px;font-family: monospace;font-size:14px;`;
-
       const variantFrom = this._xScale(variant.from);
       const variantTo = this._xScale(variant.to);
 
       // draw outline
       const width = variantTo - variantFrom;
-
+  
       this.mouseOverGraphics.lineStyle({
         width: 1,
         color: 0,
@@ -572,26 +589,48 @@ varying vec4 vColor;
         vHeight,
       );
       this.animate();
-      let callers = '-';
-      if (variant.callers) {
-        callers = variant.callers
-          .map((caller) => caller.toLowerCase())
-          .map((caller) => this.capitalizeFirstLetter(caller))
-          .join(', ');
+
+      if(this.options.dataSource === "parliament2"){
+
+        let callers = '-';
+        if (variant.callers) {
+          callers = variant.callers
+            .map((caller) => caller.toLowerCase())
+            .map((caller) => this.capitalizeFirstLetter(caller))
+            .join(', ');
+        }
+  
+        let mouseOverHtml =
+          `<table>` +
+          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td>Average length:</td><td>${variant.avglen}</td></tr>` +
+          `<tr><td>Genotype:</td><td>${variant.gt}</td></tr>` +
+          `<tr><td>Callers:</td><td>${callers}</td></tr>` +
+          `<table>`;
+  
+        return mouseOverHtml;
+
+      }
+      else{
+        let mouseOverHtml =
+          `<table>` +
+          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td>Average length:</td><td>${variant.avglen}</td></tr>` +
+          `<tr><td>Allele frequency:</td><td>${Number.parseFloat(variant.AF).toExponential(4)}</td></tr>` +
+          `<tr><td>Allele count:</td><td>${variant.AC}</td></tr>` +
+          `<tr><td>Allele number:</td><td>${variant.AN}</td></tr>` +
+          `<table>`;
+  
+        return mouseOverHtml;
       }
 
-      let mouseOverHtml =
-        `<table>` +
-        `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-        `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
-        `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
-        `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-        `<tr><td>Average length:</td><td>${variant.avglen}</td></tr>` +
-        `<tr><td>Genotype:</td><td>${variant.gt}</td></tr>` +
-        `<tr><td>Callers:</td><td>${callers}</td></tr>` +
-        `<table>`;
-
-      return mouseOverHtml;
+      
     }
 
     capitalizeFirstLetter(string) {
@@ -671,8 +710,14 @@ varying vec4 vColor;
         if (segmentWidth < 60) return;
 
         if (!(segment.id in this.svTexts)) {
-          const label =
-            segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
+          let label = ""
+
+          if(this.options.dataSource === 'gnomad'){
+            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, AF: ' + Number.parseFloat(segment.AF).toExponential();
+          }
+          else{
+            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
+          }
           this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {
             fontName: 'SVLabel',
           });
@@ -830,8 +875,10 @@ SvTrack.config = {
     'showCnvnator',
     'showLumpy',
     'showBreakdancer',
+    'showBreakseq2',
+    'showManta',
     'minSupport',
-    // 'minZoom'
+    'dataSource'
   ],
   defaultOptions: {
     colorScale: [
@@ -850,7 +897,10 @@ SvTrack.config = {
     showCnvnator: true,
     showLumpy: true,
     showBreakdancer: true,
+    showBreakseq2: true,
+    showManta: true,
     minSupport: 1,
+    dataSource: 'parliament2'
   },
   optionsInfo: {
     minVariantLength: {
@@ -947,6 +997,32 @@ SvTrack.config = {
         },
       },
     },
+    showBreakseq2: {
+      name: 'Show Breakseq2 SV calls',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
+    showManta: {
+      name: 'Show Manta SV calls',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
     minSupport: {
       name: 'Minimal SV caller support',
       inlineOptions: {
@@ -965,6 +1041,14 @@ SvTrack.config = {
         four: {
           value: 4,
           name: '4',
+        },
+        five: {
+          value: 5,
+          name: '5',
+        },
+        six: {
+          value: 6,
+          name: '6',
         },
       },
     },
