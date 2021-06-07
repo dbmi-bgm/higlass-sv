@@ -8,7 +8,7 @@
 
   <title>HiGlass SV Track</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
-  <link rel="stylesheet" href="hglib.css">
+  <link rel="stylesheet" href="https://higlass.io/hglib.min.css">
 
   <style type="text/css">
     html,
@@ -25,8 +25,8 @@
     }
   </style>
 
-<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+<script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
 <!-- <script crossorigin src="https://unpkg.com/pixi.js-legacy@5/dist/pixi-legacy.js"></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.3.9/pixi.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.32.1/react-bootstrap.min.js"></script>
@@ -88,12 +88,12 @@
     
   </div>
   <div>
-    <div id="demo" style="height:5000px"></div>
+    <div id="demo" style="height:6000px"></div>
   </div>
 </body>
-<script crossorigin src="https://unpkg.com/higlass-sequence/dist/higlass-sequence.js"></script>
 <script crossorigin src="https://unpkg.com/higlass-text/dist/higlass-text.js"></script>
-<script src="hglib.js"></script>
+<script crossorigin src="https://unpkg.com/higlass-sv/dist/higlass-sv.min.js"></script>
+<script src="https://unpkg.com/higlass/dist/hglib.min.js"></script>
 <script>
 
 function saveSvFilter(){
@@ -139,7 +139,8 @@ const testViewConfig =
   "views": [
     {
 
-      "initialXDomain": [1000006087.639179552, 1000056405.897125244],
+      "initialXDomain": [920530498.7107973,
+        993751820.7524832],
       //"initialXDomain": [3376000,3390000],
 
 
@@ -151,12 +152,13 @@ const testViewConfig =
       "tracks": {
         "top": [
         {
-            "filetype": "beddb",
-            "server": "//higlass.io/api/v1",
-            "tilesetUid": "P0PLbQMwTYGy-5uPIQid7A",
-            "uid": "MTXKavDZSa-5Ht8s8nj-QA",
-            "type": "gene-annotations",
+            "type": "horizontal-gene-annotations",
+            "height": 60,
+            "tilesetUid": "OHJakQICQD6gTD7skx4EWA",
+            "server": "https://higlass.io/api/v1",
+            "uid": "OHJakQICQD6gTD7skx4EWA",
             "options": {
+              "name": "Gene Annotations (hg19)",
               "fontSize": 10,
               "labelColor": "black",
               "labelBackgroundColor": "#ffffff",
@@ -174,18 +176,15 @@ const testViewConfig =
               "mousePositionColor": "#000000",
               "geneAnnotationHeight": 16,
               "geneLabelPosition": "outside",
-              "geneStrandSpacing": 4,
-              "name": "Gene Annotations (hg38)"
-            },
-            "width": 90,
-            "height": 90
+              "geneStrandSpacing": 4
+            }
           },
           {
             "uid": "AdlJsUYFRzuJRZyYeKDX2A",
             "type": "chromosome-labels",
             "width": 811,
             "height": 30,
-            "server": "//higlass.io/api/v1",
+            "server": "https://higlass.io/api/v1",
             "options": {
               "color": "#808080",
               "stroke": "#ffffff",
@@ -205,7 +204,7 @@ const testViewConfig =
             "tilesetUid": "emtyt"
           },
           {
-            "uid": "texttrack2",
+            "uid": "texttrack1",
             "type": "text",
             "options": {
               "backgroundColor": "#ededed",
@@ -215,90 +214,57 @@ const testViewConfig =
               "fontWeight": "bold",
               "offsetY": 1, // offset from the top of the track
               "align": "left", // left, middle, right
-              "text": "Variants parliament2",
+              "text": "SV data",
             },
             "width": 568,
             "height": 18
           },
           {
-          "type": "sv",
-            "options": {
-              "dataSource": "parliament2"
-            },
-            "height": 150,
-            "uid": "vcf2",
-            "data": {
-              "type": "vcf",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
-              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
-            },
-            "width": 470
-          },
-          {
-            "uid": "texttrack3",
-            "type": "text",
-            "options": {
-              "backgroundColor": "#ededed",
-              "textColor": "#333333",
-              "fontSize": 12,
-              "fontFamily": "Arial",
-              "fontWeight": "bold",
-              "offsetY": 1, // offset from the top of the track
-              "align": "left", // left, middle, right
-              "text": "Variants GIAB",
-            },
-            "width": 568,
-            "height": 18
+            "uid": "empty2",
+            "type": "empty",
+            "width": 811,
+            "height": 10,
+            "tilesetUid": "emtyt"
           },
           {
           "type": "sv",
             "options": {
-              "dataSource": "general"
+              "dataSource": "parliament2",
+              "variantHeight": 14,
             },
-            "height": 150,
-            "uid": "vasd8sdhj",
+            "height": 250,
+            "uid": "vcf1",
             "data": {
               "type": "vcf",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz.tbi",
+              "vcfUrl": "https://aveit.s3.us-east-1.amazonaws.com/higlass/vcf/variants-sv.vcf.gz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAZLS5EJLSO75TQUDX%2F20210528%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20210528T142725Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=22bf93fdf4dc59b5457788626dca7cead3f8977e71171f32f838cb4736103efe",
+              "tbiUrl": "https://aveit.s3.us-east-1.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAZLS5EJLSO75TQUDX%2F20210528%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20210528T142741Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=e7efdbab6b605bb9263ed36df2de2a4140c88b83e1c911cf3f678451c6cb7076",
               "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
             },
             "width": 470
           },
-          {
-            "uid": "texttrack4",
-            "type": "text",
-            "options": {
-              "backgroundColor": "#ededed",
-              "textColor": "#333333",
-              "fontSize": 12,
-              "fontFamily": "Arial",
-              "fontWeight": "bold",
-              "offsetY": 1, // offset from the top of the track
-              "align": "left", // left, middle, right
-              "text": "Variants gnomAD",
-            },
-            "width": 568,
-            "height": 18
-          },
-          {
-          "type": "sv",
-            "options": {
-              "dataSource": "gnomad"
-            },
-            "height": 150,
-            "uid": "FylkvVBTSumoJ959HT4-5C",
-            "data": {
-              "type": "vcf",
-              // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz",
-              // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz.tbi",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz.tbi",
-              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
-            },
-            "width": 470
-          }
+
+
+
+
+
+          
+          // {
+          // "type": "sv",
+          //   "options": {
+          //     "dataSource": "gnomad"
+          //   },
+          //   "height": 150,
+          //   "uid": "FylkvVBTSumoJ959HT4-5C",
+          //   "data": {
+          //     "type": "vcf",
+          //     // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz",
+          //     // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass_with_population.vcf.gz.tbi",
+          //     "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz",
+          //     "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/gnomad_sv_hg38_higlass2.vcf.gz.tbi",
+          //     "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+          //   },
+          //   "width": 470
+          // }
         ],
         "left": [],
         "center": [],

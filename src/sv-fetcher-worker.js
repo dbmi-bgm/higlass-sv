@@ -292,16 +292,33 @@ const renderSegments = (
     xRight = to - padding;
 
     let colorToUse = PILEUP_COLOR_IXS.VARIANT;
-    if (segment.svtype === 'DEL') {
-      colorToUse = PILEUP_COLOR_IXS.DELETION;
-    } else if (segment.svtype === 'INS') {
-      colorToUse = PILEUP_COLOR_IXS.INSERTION;
-    } else if (segment.svtype === 'DUP') {
-      colorToUse = PILEUP_COLOR_IXS.DUPLICATION;
-    } else if (segment.svtype === 'INV') {
-      colorToUse = PILEUP_COLOR_IXS.INVERSION;
-    } else if (segment.svtype === 'BND') {
-      colorToUse = PILEUP_COLOR_IXS.TRANSLOCATION;
+    
+
+    if(trackOptions.dataSource === 'gnomad' && segment.AF > trackOptions.gnomadAlleleFrequencyThreshold){
+      if (segment.svtype === 'DEL') {
+        colorToUse = PILEUP_COLOR_IXS.DELETION_LIGHT;
+      } else if (segment.svtype === 'INS') {
+        colorToUse = PILEUP_COLOR_IXS.INSERTION_LIGHT;
+      } else if (segment.svtype === 'DUP') {
+        colorToUse = PILEUP_COLOR_IXS.DUPLICATION_LIGHT;
+      } else if (segment.svtype === 'INV') {
+        colorToUse = PILEUP_COLOR_IXS.INVERSION_LIGHT;
+      } else if (segment.svtype === 'BND') {
+        colorToUse = PILEUP_COLOR_IXS.TRANSLOCATION_LIGHT;
+      }
+    }
+    else{
+      if (segment.svtype === 'DEL') {
+        colorToUse = PILEUP_COLOR_IXS.DELETION;
+      } else if (segment.svtype === 'INS') {
+        colorToUse = PILEUP_COLOR_IXS.INSERTION;
+      } else if (segment.svtype === 'DUP') {
+        colorToUse = PILEUP_COLOR_IXS.DUPLICATION;
+      } else if (segment.svtype === 'INV') {
+        colorToUse = PILEUP_COLOR_IXS.INVERSION;
+      } else if (segment.svtype === 'BND') {
+        colorToUse = PILEUP_COLOR_IXS.TRANSLOCATION;
+      }
     }
     segment['yTop'] = segment.row * (trackOptions.variantHeight+2)+1;
     yTop = segment['yTop'];

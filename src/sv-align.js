@@ -54,10 +54,7 @@ class VariantAligner {
     let occupiedSpaceInRows = [];
     let filteredSegments = {};
 
-    if(dataSource === "gnomad"){
-      filteredSegments = segments.filter((x) => x.row === null);
-    }
-    else{
+    if(dataSource === "parliament2"){
       filteredSegments = segments.filter(
         (x) => x.row === null && 
         (x.to-x.from >= filter.minVariantLength) && 
@@ -72,6 +69,10 @@ class VariantAligner {
           x.callers === undefined) &&
         x.supp >= filter.minSupport
         );
+      
+    }
+    else{
+      filteredSegments = segments.filter((x) => x.row === null);
     }
 
     filteredSegments.sort((a, b) => a.from - b.from);

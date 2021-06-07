@@ -2,10 +2,15 @@ export const PILEUP_COLORS = {
   VARIANT: [0.3, 0.3, 0.3, 0.6], // gray for the variant background
   LINE: [0.9, 0.9, 0.9, 1], // gray for the variant background
   INSERTION: [0.6, 0.6, 0.0, 0.7],
+  INSERTION_LIGHT: [0.6, 0.6, 0.0, 0.3],
   DELETION: [1, 0.0, 0.0, 0.55],
+  DELETION_LIGHT: [1, 0.0, 0.0, 0.2],
   INVERSION: [0.68, 0.23, 0.87, 0.8],
+  INVERSION_LIGHT: [0.68, 0.23, 0.87, 0.3],
   TRANSLOCATION: [0.26, 0.52, 0.95, 0.8],
+  TRANSLOCATION_LIGHT: [0.26, 0.52, 0.95, 0.3],
   DUPLICATION: [0.27, 0.64, 0.09, 0.8],
+  DUPLICATION_LIGHT: [0.27, 0.64, 0.09, 0.3],
   BLACK: [0, 0, 0, 1],
   BLACK_05: [0, 0, 0, 0.5],
   WHITE: [1, 1, 1, 1],
@@ -37,44 +42,54 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
   let segment = {};
   
   if(dataSource === "gnomad"){
-
+    let from = vcfRecord.POS + chrOffset;
     let to = info.END[0] + chrOffset;
     let toDisp = info.END[0];
+    let svLength = +info.SVLEN[0];
+
+    if (svType === "INS" && +vcfRecord.POS === +info.END[0]) {
+      to = vcfRecord.POS + chrOffset + svLength;
+      toDisp = vcfRecord.POS + svLength;
+    }
+
+    if (svType === "INV" && svLength === 0) {
+      svLength = to - from + 1;
+    }
 
     segment = {
       id: vcfRecord['ID'][0],
       svtype: svType,
-      from: vcfRecord.POS + chrOffset,
+      from: from,
       fromDisp: chrName + ':' + vcfRecord.POS,
       to: to,
       toDisp: chrName + ':' + toDisp,
-      avglen: info.SVLEN[0],
+      avglen: svLength,
       chrName,
       chrOffset,
       filter: null,
       row: null,
-      AF: info.AF[0],
-      AC: info.AC[0],
-      AN: info.AN[0],
-      // AFR_AF: info.AFR_AF[0],
-      // AFR_AC: info.AFR_AC[0],
-      // AFR_AN: info.AFR_AN[0],
-      // AMR_AF: info.AMR_AF[0],
-      // AMR_AC: info.AMR_AC[0],
-      // AMR_AN: info.AMR_AN[0],
-      // EAS_AF: info.EAS_AF[0],
-      // EAS_AC: info.EAS_AC[0],
-      // EAS_AN: info.EAS_AN[0],
-      // EUR_AF: info.EUR_AF[0],
-      // EUR_AC: info.EUR_AC[0],
-      // EUR_AN: info.EUR_AN[0],
-      // OTH_AF: info.OTH_AF[0],
-      // OTH_AC: info.OTH_AC[0],
-      // OTH_AN: info.OTH_AN[0],
+      AF: +info.AF[0],
+      AC: +info.AC[0],
+      AN: +info.AN[0],
+      // AFR_AF: +info.AFR_AF[0],
+      // AFR_AC: +info.AFR_AC[0],
+      // AFR_AN: +info.AFR_AN[0],
+      // AMR_AF: +info.AMR_AF[0],
+      // AMR_AC: +info.AMR_AC[0],
+      // AMR_AN: +info.AMR_AN[0],
+      // EAS_AF: +info.EAS_AF[0],
+      // EAS_AC: +info.EAS_AC[0],
+      // EAS_AN: +info.EAS_AN[0],
+      // EUR_AF: +info.EUR_AF[0],
+      // EUR_AC: +info.EUR_AC[0],
+      // EUR_AN: +info.EUR_AN[0],
+      // OTH_AF: +info.OTH_AF[0],
+      // OTH_AC: +info.OTH_AC[0],
+      // OTH_AN: +info.OTH_AN[0],
     };
     
   }
-  else{
+  else if(dataSource === "parliament2"){
 
     const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
     const sample = vcfRecord['SAMPLES'][samplesKey];
@@ -136,6 +151,33 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       calledByManta: calledByManta,
     };
 
+  }
+  // Minimal data requirements
+  else
+  {
+    const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
+    const sample = vcfRecord['SAMPLES'][samplesKey];
+    let to = info.END[0] + chrOffset;
+    let toDisp = info.END[0];
+    let avglen = "-";
+    if('SVLEN' in info){
+      avglen = info.SVLEN[0];
+    }
+
+    segment = {
+      id: vcfRecord['ID'][0],
+      svtype: svType,
+      from: vcfRecord.POS + chrOffset,
+      fromDisp: chrName + ':' + vcfRecord.POS,
+      to: to,
+      toDisp: chrName + ':' + toDisp,
+      avglen: avglen,
+      chrName,
+      chrOffset,
+      filter: null,
+      gt: sample['GT'][0],
+      row: null
+    };
   }
 
 

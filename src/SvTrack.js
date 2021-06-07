@@ -614,19 +614,30 @@ varying vec4 vColor;
         return mouseOverHtml;
 
       }
-      else{
+      else if(this.options.dataSource === "gnomad"){
         let mouseOverHtml =
           `<table>` +
           `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
           `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
           `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
           `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td>Average length:</td><td>${variant.avglen}</td></tr>` +
+          `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
           `<tr><td>Allele frequency:</td><td>${Number.parseFloat(variant.AF).toExponential(4)}</td></tr>` +
           `<tr><td>Allele count:</td><td>${variant.AC}</td></tr>` +
           `<tr><td>Allele number:</td><td>${variant.AN}</td></tr>` +
           `<table>`;
   
+        return mouseOverHtml;
+      }
+      else{
+        let mouseOverHtml =
+        `<table>` +
+        `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+        `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
+        `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
+        `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
+        `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
+        `<table>`;
         return mouseOverHtml;
       }
 
@@ -714,6 +725,9 @@ varying vec4 vColor;
 
           if(this.options.dataSource === 'gnomad'){
             label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, AF: ' + Number.parseFloat(segment.AF).toExponential();
+          }
+          else if(this.options.dataSource === 'parliament2'){
+            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
           }
           else{
             label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
@@ -878,7 +892,8 @@ SvTrack.config = {
     'showBreakseq2',
     'showManta',
     'minSupport',
-    'dataSource'
+    'dataSource',
+    'gnomadAlleleFrequencyThreshold'
   ],
   defaultOptions: {
     colorScale: [
@@ -900,7 +915,8 @@ SvTrack.config = {
     showBreakseq2: true,
     showManta: true,
     minSupport: 1,
-    dataSource: 'parliament2'
+    dataSource: 'parliament2',
+    gnomadAlleleFrequencyThreshold: 1
   },
   optionsInfo: {
     minVariantLength: {
