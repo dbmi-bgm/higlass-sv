@@ -52,13 +52,10 @@ class VariantAligner {
     // This means that in row i, the space from 100 to 110 is occupied and reads cannot be placed there
     // This array is updated with every segment that is added to the scene
     let occupiedSpaceInRows = [];
-    let filteredSegments = {};
+    let filteredSegments = segments.filter((x) => x.row === null);
 
     if(dataSource === "parliament2"){
-      filteredSegments = segments.filter(
-        (x) => x.row === null && 
-        (x.to-x.from >= filter.minVariantLength) && 
-        (x.to-x.from <= filter.maxVariantLength) &&
+      filteredSegments = filteredSegments.filter((x) =>
         ( (x.calledByLumpy && filter.showLumpy) || 
           (x.calledByDelly && filter.showDelly) ||
           (x.calledByBreakdancer && filter.showBreakdancer) ||
@@ -69,16 +66,23 @@ class VariantAligner {
           x.callers === undefined) &&
         x.supp >= filter.minSupport
         );
-      
     }
-    else{
-      filteredSegments = segments.filter((x) => x.row === null);
-    }
+
+    // Length and variant type filtering is applied to every data source
+    filteredSegments = filteredSegments.filter((x) =>
+      (x.to-x.from >= filter.minVariantLength) && 
+      (x.to-x.from <= filter.maxVariantLength) &&
+      ( (x.svtype === "DEL" && filter.showDeletions) || 
+        (x.svtype === "DUP" && filter.showDuplications) || 
+        (x.svtype === "INS" && filter.showInsertions) || 
+        (x.svtype === "INV" && filter.showInversions)
+      )
+      );
 
     filteredSegments.sort((a, b) => a.from - b.from);
     filteredSegments.forEach((segment) => {
       this.assignSegmentToRow(segment, occupiedSpaceInRows, padding);
-      //console.log(segment.from, segment.to, segment.row)
+
     });
 
   }

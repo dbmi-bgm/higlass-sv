@@ -40,6 +40,15 @@ const scaleScalableGraphics = (graphics, xScale, drawnAtScale) => {
   graphics.position.x = -posOffset * tileK;
 };
 
+function eqArr(a, b) {
+  return (
+    Array.isArray(a) &&
+    Array.isArray(b) &&
+    a.length === b.length &&
+    a.every((val, index) => val === b[index])
+  );
+}
+
 function eqSet(as, bs) {
   return as.size === bs.size && all(isIn(bs), as);
 }
@@ -106,6 +115,9 @@ const SvTrack = (HGC, ...args) => {
 
       this.svData = [];
       this.visibleChromosomes = [];
+      this.visibleChromosomesOld = [];
+      this.visibleTileBounds = [0, 1];
+      this.visibleTileBoundsOld = [0, 1];
       this.svDataPerChromosome = {};
       this.svTexts = {};
       this.svTextWidths = {};
@@ -186,6 +198,10 @@ const SvTrack = (HGC, ...args) => {
       this.showCnvnator = this.options.showCnvnator;
       this.showBreakseq2 = this.options.showBreakseq2;
       this.showManta = this.options.showManta;
+      this.showDeletions = this.options.showDeletions;
+      this.showInsertions = this.options.showInsertions;
+      this.showDuplications = this.options.showDuplications;
+      this.showInversions = this.options.showInversions;
       this.minSupport = this.options.minSupport;
 
       this.pLabel.addChild(this.loadingText);
@@ -209,6 +225,7 @@ const SvTrack = (HGC, ...args) => {
       }
 
       this.visibleChromosomes = [];
+
       const chrA = absToChr(newXScale.domain()[0], this.chromInfo)[0];
       const chrB = absToChr(newXScale.domain()[1], this.chromInfo)[0];
       const chrAId = this.chromInfo.chrPositions[chrA].id;
@@ -235,7 +252,6 @@ const SvTrack = (HGC, ...args) => {
         }
       });
     }
-    
 
     // This can only be called then chromInfo has loaded
     loadChrSvData(chr) {
@@ -245,29 +261,36 @@ const SvTrack = (HGC, ...args) => {
         .getLines(chr, 0, chromLengths[chr], (line) => {
           const vcfRecord = tbiVCFParser.parseLine(line);
 
-
           // Don't load translocations for now
           // Gnomad SV does not contain BNDs
-          if(vcfRecord.INFO.SVTYPE[0] === "BND"){
+          if (vcfRecord.INFO.SVTYPE[0] === 'BND') {
             return;
           }
-          
+
           const vcfJson = vcfRecordToJson(
             vcfRecord,
             chr,
             cumPositions[chrPositions[chr].id].pos,
-            this.options.dataSource
+            this.options.dataSource,
           );
           const segment = vcfJson[0];
           this.svDataPerChromosome[chr].push(segment);
           this.svData.push(segment);
+
           //vcfJson.forEach((variant) => this.svData.push(variant));
         })
         .then(() => {
+          // this.svData = [];
+          // this.visibleChromosomes.forEach((chr) => {
+          //   if (chr in this.svDataPerChromosome) {
+          //     this.svData = this.svData.concat(this.svDataPerChromosome[chr])
+          //   }
+          // });
+
           this.variantAligner.segmentsToRows(
             this.svData,
             this.getSegmentsToRowFilter(),
-            this.options.dataSource
+            this.options.dataSource,
           );
           this.updateLoadingText();
           this.updateExistingGraphics();
@@ -373,6 +396,10 @@ varying vec4 vColor;
         this.showCnvnator !== this.options.showCnvnator ||
         this.showBreakseq2 !== this.options.showBreakseq2 ||
         this.showManta !== this.options.showManta ||
+        this.showDeletions !== this.options.showDeletions ||
+        this.showInsertions !== this.options.showInsertions ||
+        this.showDuplications !== this.options.showDuplications ||
+        this.showInversions !== this.options.showInversions ||
         this.minSupport !== this.options.minSupport
       ) {
         this.maxVariantLength = this.options.maxVariantLength;
@@ -383,6 +410,10 @@ varying vec4 vColor;
         this.showCnvnator = this.options.showCnvnator;
         this.showBreakseq2 = this.options.showBreakseq2;
         this.showManta = this.options.showManta;
+        this.showDeletions = this.options.showDeletions;
+        this.showInsertions = this.options.showInsertions;
+        this.showDuplications = this.options.showDuplications;
+        this.showInversions = this.options.showInversions;
         this.minSupport = this.options.minSupport;
 
         // We have to recompute the row number
@@ -392,7 +423,7 @@ varying vec4 vColor;
         this.variantAligner.segmentsToRows(
           this.svData,
           this.getSegmentsToRowFilter(),
-          this.options.dataSource
+          this.options.dataSource,
         );
         // We have to regenerate labels when segment rows change
         this.svTexts = {};
@@ -412,8 +443,51 @@ varying vec4 vColor;
         showCnvnator: this.showCnvnator,
         showBreakseq2: this.showBreakseq2,
         showManta: this.showManta,
+        showDeletions: this.showDeletions,
+        showDuplications: this.showDuplications,
+        showInversions: this.showInversions,
+        showInsertions: this.showInsertions,
         minSupport: this.minSupport,
       };
+    }
+
+    synchronizeTilesAndGraphics() {
+      if (!eqArr(this.visibleChromosomes, this.visibleChromosomesOld)) {
+        // Regenerate the svData, so that we always work with the smallest possible set (performance)
+        this.svData = [];
+        this.visibleChromosomes.forEach((chr) => {
+          if (chr in this.svDataPerChromosome) {
+            this.svData = this.svData.concat(this.svDataPerChromosome[chr]);
+          }
+        });
+        this.visibleChromosomesOld = this.visibleChromosomes;
+      }
+
+      // Check if the extend of the visible tiles changed. Only rerender if that's the case.
+      // This improves efficient when receivedTiles and removeTiles is called within a short period of time,
+      // and  the visible area actually hasn't changed. We only rerender once in this case.
+      let tilesMinX = Number.MAX_SAFE_INTEGER;
+      let tilesMaxX = Number.MIN_SAFE_INTEGER;
+      const tileIds = Object.values(this.fetchedTiles).map((x) => x.remoteId);
+
+      for (const tileId of tileIds) {
+        const tileNumber = +tileId.split('.')[1];
+        const zoomLevel = +tileId.split('.')[0]; //track.zoomLevel does not always seem to be up to date
+        const tileWidth = +this.chromInfo.totalLength / 2 ** zoomLevel;
+        const tileMinX = tileNumber * tileWidth; // abs coordinates
+        const tileMaxX = (tileNumber + 1) * tileWidth;
+        tilesMinX = Math.min(tileMinX, tilesMinX);
+        tilesMaxX = Math.max(tileMaxX, tilesMaxX);
+      }
+      this.visibleTileBounds = [tilesMinX, tilesMaxX];
+
+      if (
+        this.visibleTileBounds[0] !== this.visibleTileBoundsOld[0] ||
+        this.visibleTileBounds[1] !== this.visibleTileBoundsOld[1]
+      ) {
+        this.visibleTileBoundsOld = this.visibleTileBounds;
+        super.synchronizeTilesAndGraphics();
+      }
     }
 
     updateExistingGraphics() {
@@ -441,8 +515,7 @@ varying vec4 vColor;
       this.worker.then((tileFunctions) => {
         tileFunctions
           .renderSegments(
-            this.dataFetcher.uid,
-            Object.values(this.fetchedTiles).map((x) => x.remoteId),
+            this.visibleTileBounds,
             this._xScale.domain(),
             this._xScale.range(),
             this.options,
@@ -577,7 +650,7 @@ varying vec4 vColor;
 
       // draw outline
       const width = variantTo - variantFrom;
-  
+
       this.mouseOverGraphics.lineStyle({
         width: 1,
         color: 0,
@@ -590,8 +663,7 @@ varying vec4 vColor;
       );
       this.animate();
 
-      if(this.options.dataSource === "parliament2"){
-
+      if (this.options.dataSource === 'parliament2') {
         let callers = '-';
         if (variant.callers) {
           callers = variant.callers
@@ -599,7 +671,7 @@ varying vec4 vColor;
             .map((caller) => this.capitalizeFirstLetter(caller))
             .join(', ');
         }
-  
+
         let mouseOverHtml =
           `<table>` +
           `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
@@ -610,11 +682,9 @@ varying vec4 vColor;
           `<tr><td>Genotype:</td><td>${variant.gt}</td></tr>` +
           `<tr><td>Callers:</td><td>${callers}</td></tr>` +
           `<table>`;
-  
-        return mouseOverHtml;
 
-      }
-      else if(this.options.dataSource === "gnomad"){
+        return mouseOverHtml;
+      } else if (this.options.dataSource === 'gnomad') {
         let mouseOverHtml =
           `<table>` +
           `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
@@ -622,26 +692,25 @@ varying vec4 vColor;
           `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
           `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
           `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
-          `<tr><td>Allele frequency:</td><td>${Number.parseFloat(variant.AF).toExponential(4)}</td></tr>` +
+          `<tr><td>Allele frequency:</td><td>${Number.parseFloat(
+            variant.AF,
+          ).toExponential(4)}</td></tr>` +
           `<tr><td>Allele count:</td><td>${variant.AC}</td></tr>` +
           `<tr><td>Allele number:</td><td>${variant.AN}</td></tr>` +
           `<table>`;
-  
-        return mouseOverHtml;
-      }
-      else{
-        let mouseOverHtml =
-        `<table>` +
-        `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-        `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
-        `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
-        `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-        `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
-        `<table>`;
-        return mouseOverHtml;
-      }
 
-      
+        return mouseOverHtml;
+      } else {
+        let mouseOverHtml =
+          `<table>` +
+          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
+          `<table>`;
+        return mouseOverHtml;
+      }
     }
 
     capitalizeFirstLetter(string) {
@@ -709,6 +778,7 @@ varying vec4 vColor;
     }
 
     updateSvLabels() {
+      //return;
       this.textGraphics.removeChildren();
       const padding = 5;
 
@@ -721,16 +791,29 @@ varying vec4 vColor;
         if (segmentWidth < 60) return;
 
         if (!(segment.id in this.svTexts)) {
-          let label = ""
+          let label = '';
 
-          if(this.options.dataSource === 'gnomad'){
-            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, AF: ' + Number.parseFloat(segment.AF).toExponential();
-          }
-          else if(this.options.dataSource === 'parliament2'){
-            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
-          }
-          else{
-            label = segment.svtype + ', ' + (segment.to - segment.from + 1) + 'bp, GT:' + segment.gt;
+          if (this.options.dataSource === 'gnomad') {
+            label =
+              segment.svtype +
+              ', ' +
+              (segment.to - segment.from + 1) +
+              'bp, AF: ' +
+              Number.parseFloat(segment.AF).toExponential();
+          } else if (this.options.dataSource === 'parliament2') {
+            label =
+              segment.svtype +
+              ', ' +
+              (segment.to - segment.from + 1) +
+              'bp, GT:' +
+              segment.gt;
+          } else {
+            label =
+              segment.svtype +
+              ', ' +
+              (segment.to - segment.from + 1) +
+              'bp, GT:' +
+              segment.gt;
           }
           this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {
             fontName: 'SVLabel',
@@ -781,7 +864,12 @@ varying vec4 vColor;
         const paddingX = 5;
         const paddingY = 2;
 
-        const label = `${this.numFilteredVariants} / ${this.numVisibleVariants} SV calls visible`;
+        let label = ``;
+        if (this.numFilteredVariants < this.options.maxVariants) {
+          label = `${this.numFilteredVariants} / ${this.numVisibleVariants} SV calls visible`;
+        } else {
+          label = `${this.numFilteredVariants} / ${this.numVisibleVariants} largest SV calls visible`;
+        }
         const bitmapText = new HGC.libraries.PIXI.BitmapText(label, {
           fontName: 'FilterLabel',
         });
@@ -891,9 +979,14 @@ SvTrack.config = {
     'showBreakdancer',
     'showBreakseq2',
     'showManta',
+    'showDeletions',
+    'showInsertions',
+    'showDuplications',
+    'showInversions',
     'minSupport',
     'dataSource',
-    'gnomadAlleleFrequencyThreshold'
+    'gnomadAlleleFrequencyThreshold',
+    'maxVariants',
   ],
   defaultOptions: {
     colorScale: [
@@ -914,9 +1007,14 @@ SvTrack.config = {
     showBreakdancer: true,
     showBreakseq2: true,
     showManta: true,
+    showDeletions: true,
+    showInsertions: true,
+    showDuplications: true,
+    showInversions: true,
     minSupport: 1,
     dataSource: 'parliament2',
-    gnomadAlleleFrequencyThreshold: 1
+    gnomadAlleleFrequencyThreshold: 1,
+    maxVariants: 100000,
   },
   optionsInfo: {
     minVariantLength: {
@@ -1028,6 +1126,58 @@ SvTrack.config = {
     },
     showManta: {
       name: 'Show Manta SV calls',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
+    showDeletions: {
+      name: 'Show deletions',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
+    showInversions: {
+      name: 'Show inversions',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
+    showDuplications: {
+      name: 'Show inversions',
+      inlineOptions: {
+        default: {
+          value: true,
+          name: 'True',
+        },
+        no: {
+          value: false,
+          name: 'False',
+        },
+      },
+    },
+    showInsertions: {
+      name: 'Show inversions',
       inlineOptions: {
         default: {
           value: true,

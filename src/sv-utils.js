@@ -64,6 +64,7 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       to: to,
       toDisp: chrName + ':' + toDisp,
       avglen: svLength,
+      avglenAbs: Math.abs(+svLength),
       chrName,
       chrOffset,
       filter: null,
@@ -133,6 +134,7 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       to: to,
       toDisp: info.CHR2[0] + ':' + toDisp,
       avglen: info.AVGLEN[0],
+      avglenAbs: Math.abs(+info.AVGLEN[0]),
       chrName,
       chrOffset,
       filter: vcfRecord['FILTER'][0],
@@ -178,6 +180,7 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       gt: sample['GT'][0],
       row: null
     };
+    segment['avglenAbs'] = Math.abs(segment.to - segment.from);
   }
 
 

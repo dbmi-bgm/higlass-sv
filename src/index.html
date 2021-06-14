@@ -17,11 +17,13 @@
       padding: 0;
     }
     #demo {
-      position: absolute;
+      /* position: absolute;
       left: 1rem;
       top: 13.5rem;
       bottom: 1rem;
-      right: 1rem;
+      right: 1rem; */
+      margin-left: 1rem;
+      margin-right: 1rem;
     }
   </style>
 
@@ -72,6 +74,28 @@
 
       <div class="d-flex flex-row flex-wrap bd-highlight mb-3">
         <div class="p-2 form-check-inline">
+          SV type:
+        </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-deletions" checked>
+          <label class="form-check-label" for="sv-show-deletions">Deletions</label>
+        </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-duplications" checked>
+          <label class="form-check-label" for="sv-show-duplications">Duplications</label>
+        </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-inversions" checked>
+          <label class="form-check-label" for="sv-show-inversions">Inversions</label>
+        </div>
+        <div class="p-2 form-check-inline bg-light">
+          <input class="form-check-input" type="checkbox" id="sv-show-insertions" checked>
+          <label class="form-check-label" for="sv-show-insertions">Insertions</label>
+        </div>
+      </div>
+
+      <div class="d-flex flex-row flex-wrap bd-highlight mb-3">
+        <div class="p-2 form-check-inline">
           SV length (in bp):
         </div>
         <div class="p-2 form-check-inline bg-light">
@@ -88,7 +112,7 @@
     
   </div>
   <div>
-    <div id="demo" style="height:5000px"></div>
+    <div id="demo"></div>
   </div>
 </body>
 <script crossorigin src="https://unpkg.com/higlass-sequence/dist/higlass-sequence.js"></script>
@@ -103,6 +127,10 @@ function saveSvFilter(){
   const showCnvnator = document.getElementById("sv-show-cnvnator").checked;
   const showBreakseq2 = document.getElementById("sv-show-breakseq2").checked;
   const showManta = document.getElementById("sv-show-manta").checked;
+  const showDeletions = document.getElementById("sv-show-deletions").checked;
+  const showDuplications= document.getElementById("sv-show-duplications").checked;
+  const showInversions= document.getElementById("sv-show-inversions").checked;
+  const showInsertions= document.getElementById("sv-show-insertions").checked;
   const minSupport = parseInt(document.getElementById("sv-min-support").value, 10);
   const minVariantLength = parseInt(document.getElementById("sv-min-length").value, 10);
   const maxVariantLength = parseInt(document.getElementById("sv-max-length").value, 10);
@@ -110,13 +138,17 @@ function saveSvFilter(){
   const viewconf = hgApi.getViewConfig();
   viewconf.views.forEach((view) => {
     view.tracks.top.forEach((track) => {
-      if(track.type === "sv" && track.options.dataSource === "parliament2"){
+      if(track.type === "sv"){
         track.options.showDelly = showDelly;
         track.options.showLumpy = showLumpy;
         track.options.showBreakdancer = showBreakdancer;
         track.options.showCnvnator = showCnvnator;
         track.options.showBreakseq2 = showBreakseq2;
         track.options.showManta = showManta;
+        track.options.showDeletions = showDeletions;
+        track.options.showDuplications = showDuplications;
+        track.options.showInsertions = showInsertions;
+        track.options.showInversions = showInversions;
         track.options.minSupport = minSupport;
         track.options.minVariantLength = minVariantLength;
         track.options.maxVariantLength = maxVariantLength;
@@ -204,68 +236,68 @@ const testViewConfig =
             "height": 10,
             "tilesetUid": "emtyt"
           },
-          {
-            "uid": "texttrack2",
-            "type": "text",
-            "options": {
-              "backgroundColor": "#ededed",
-              "textColor": "#333333",
-              "fontSize": 12,
-              "fontFamily": "Arial",
-              "fontWeight": "bold",
-              "offsetY": 1, // offset from the top of the track
-              "align": "left", // left, middle, right
-              "text": "Variants parliament2",
-            },
-            "width": 568,
-            "height": 18
-          },
-          {
-          "type": "sv",
-            "options": {
-              "dataSource": "parliament2"
-            },
-            "height": 150,
-            "uid": "vcf2",
-            "data": {
-              "type": "vcf",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
-              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
-            },
-            "width": 470
-          },
-          {
-            "uid": "texttrack3",
-            "type": "text",
-            "options": {
-              "backgroundColor": "#ededed",
-              "textColor": "#333333",
-              "fontSize": 12,
-              "fontFamily": "Arial",
-              "fontWeight": "bold",
-              "offsetY": 1, // offset from the top of the track
-              "align": "left", // left, middle, right
-              "text": "Variants GIAB",
-            },
-            "width": 568,
-            "height": 18
-          },
-          {
-          "type": "sv",
-            "options": {
-              "dataSource": "general"
-            },
-            "height": 150,
-            "uid": "vasd8sdhj",
-            "data": {
-              "type": "vcf",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz.tbi",
-              "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
-            },
-            "width": 470
-          },
+          // {
+          //   "uid": "texttrack2",
+          //   "type": "text",
+          //   "options": {
+          //     "backgroundColor": "#ededed",
+          //     "textColor": "#333333",
+          //     "fontSize": 12,
+          //     "fontFamily": "Arial",
+          //     "fontWeight": "bold",
+          //     "offsetY": 1, // offset from the top of the track
+          //     "align": "left", // left, middle, right
+          //     "text": "Variants parliament2",
+          //   },
+          //   "width": 568,
+          //   "height": 18
+          // },
+          // {
+          // "type": "sv",
+          //   "options": {
+          //     "dataSource": "parliament2"
+          //   },
+          //   "height": 150,
+          //   "uid": "vcf2",
+          //   "data": {
+          //     "type": "vcf",
+          //     "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+          //     "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+          //     "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+          //   },
+          //   "width": 470
+          // },
+          // {
+          //   "uid": "texttrack3",
+          //   "type": "text",
+          //   "options": {
+          //     "backgroundColor": "#ededed",
+          //     "textColor": "#333333",
+          //     "fontSize": 12,
+          //     "fontFamily": "Arial",
+          //     "fontWeight": "bold",
+          //     "offsetY": 1, // offset from the top of the track
+          //     "align": "left", // left, middle, right
+          //     "text": "Variants GIAB",
+          //   },
+          //   "width": 568,
+          //   "height": 18
+          // },
+          // {
+          // "type": "sv",
+          //   "options": {
+          //     "dataSource": "general"
+          //   },
+          //   "height": 150,
+          //   "uid": "vasd8sdhj",
+          //   "data": {
+          //     "type": "vcf",
+          //     "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz",
+          //     "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants_giab.vcf.gz.tbi",
+          //     "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+          //   },
+          //   "width": 470
+          // },
           {
             "uid": "texttrack4",
             "type": "text",

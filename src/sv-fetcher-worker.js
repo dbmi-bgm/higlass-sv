@@ -12,7 +12,6 @@ function currTime() {
   return d.getTime();
 }
 
-
 // promises indexed by urls
 const vcfFiles = {};
 const vcfHeaders = {};
@@ -88,9 +87,7 @@ const tilesetInfo = (uid) => {
 
 // We return an empty tile. We get the data from SvTrack
 const tile = async (uid, z, x) => {
-
   return tilesetInfo(uid).then((tsInfo) => {
-
     const recordPromises = [];
     const variants = [];
 
@@ -102,7 +99,7 @@ const tile = async (uid, z, x) => {
 
 const fetchTilesDebounced = async (uid, tileIds) => {
   const tiles = {};
-  
+
   const validTileIds = [];
   const tilePromises = [];
 
@@ -146,44 +143,34 @@ let allColors = new Float32Array(allColorsLength);
 let allIndexes = new Int32Array(allIndexesLength);
 
 const renderSegments = (
-  uid,
-  tileIds,
+  visibleTileBounds,
   domain,
   scaleRange,
   trackOptions,
-  svData
+  svData,
 ) => {
-
   //const t1 = currTime();
 
+  // segments that are filtered out with minVariantLenght/maxVariantLenght have row=null
+  const visibleVariants = svData.filter(
+    (segment) =>
+      segment.to >= visibleTileBounds[0] &&
+      segment.from <= visibleTileBounds[1],
+  );
 
-  let tilesMinX = Number.MAX_SAFE_INTEGER;
-  let tilesMaxX = Number.MIN_SAFE_INTEGER
+  const visibleVariantsFiltered = visibleVariants.filter(
+    (segment) => segment.row !== null,
+  );
 
-  for (const tileId of tileIds) {
-
-    const tileNumber = +tileId.split('.')[1];
-    const zoomLevel = +tileId.split('.')[0]; //track.zoomLevel does not always seem to be up to date
-    const tileWidth = +tilesetInfos[uid].max_width / 2 ** zoomLevel;
-    const tileMinX = tilesetInfos[uid].min_pos[0] + tileNumber * tileWidth; // abs coordinates
-    const tileMaxX = tilesetInfos[uid].min_pos[0] + (tileNumber + 1) * tileWidth;
-    tilesMinX = Math.min(tileMinX, tilesMinX);
-    tilesMaxX = Math.max(tileMaxX, tilesMaxX);
-
+  let segmentList = visibleVariantsFiltered;
+  // We additionally truncate segmentList after rows numbers have been assigned.
+  // This is for performance reasons and we don't want row numbers to change while zooming
+  // Keep only the largest variants
+  if (visibleVariantsFiltered.length > trackOptions.maxVariants) {
+    segmentList = visibleVariantsFiltered
+      .sort((a, b) => b.avglenAbs - a.avglenAbs)
+      .slice(0, trackOptions.maxVariants);
   }
-
-  const visibleTileBounds = [tilesMinX, tilesMaxX];
-  // segements that are filtered out with minVariantLenght/maxVariantLenght have row=null
-  const visibleVariants = svData.filter((segment) => 
-  segment.to >= visibleTileBounds[0] && 
-  segment.from <= visibleTileBounds[1]);
-
-  const segmentList = visibleVariants.filter((segment) => 
-    segment.row !== null);
-
-  // console.log("------");
-  // console.log(visibleVariants);
-  // console.log(segmentList);
 
   let currPosition = 0;
   let currColor = 0;
@@ -250,30 +237,29 @@ const renderSegments = (
 
   const xScale = scaleLinear().domain(domain).range(scaleRange);
 
-
   let xLeft;
   let xRight;
   let yTop;
 
-
   // Needed to check for duplicates
   segmentList.sort((a, b) => {
-      if(a.id < b.id) { return -1; }
-      if(a.id > b.id) { return 1; }
-      return 0;
+    if (a.id < b.id) {
+      return -1;
+    }
+    if (a.id > b.id) {
+      return 1;
+    }
+    return 0;
   });
   let lastSegment = null;
 
   segmentList.forEach((segment, j) => {
     // Ignore duplicates - can happen when variants span more than one tile
-    if (
-      lastSegment &&
-      segment.id === lastSegment.id 
-    ) {
+    if (lastSegment && segment.id === lastSegment.id) {
       return;
     }
     //console.log(segment)
-        
+
     lastSegment = segment;
 
     const from = xScale(segment.from);
@@ -282,19 +268,19 @@ const renderSegments = (
     // Start at one, since the graphics starts at 1
     yTop = 1;
 
-    const width = Math.max(1,to - from);
-    // This is needed because a constant padding would be too large, if the
-    // initial rendering is happing zoomed out
-    //const padding = Math.min(0.5, 0.01 * width);
+    const width = Math.max(1, to - from);
+
     const padding = 0;
 
     xLeft = from + padding;
     xRight = to - padding;
 
     let colorToUse = PILEUP_COLOR_IXS.VARIANT;
-    
 
-    if(trackOptions.dataSource === 'gnomad' && segment.AF > trackOptions.gnomadAlleleFrequencyThreshold){
+    if (
+      trackOptions.dataSource === 'gnomad' &&
+      segment.AF > trackOptions.gnomadAlleleFrequencyThreshold
+    ) {
       if (segment.svtype === 'DEL') {
         colorToUse = PILEUP_COLOR_IXS.DELETION_LIGHT;
       } else if (segment.svtype === 'INS') {
@@ -306,8 +292,7 @@ const renderSegments = (
       } else if (segment.svtype === 'BND') {
         colorToUse = PILEUP_COLOR_IXS.TRANSLOCATION_LIGHT;
       }
-    }
-    else{
+    } else {
       if (segment.svtype === 'DEL') {
         colorToUse = PILEUP_COLOR_IXS.DELETION;
       } else if (segment.svtype === 'INS') {
@@ -320,12 +305,12 @@ const renderSegments = (
         colorToUse = PILEUP_COLOR_IXS.TRANSLOCATION;
       }
     }
-    segment['yTop'] = segment.row * (trackOptions.variantHeight+2)+1;
+    segment['yTop'] = segment.row * (trackOptions.variantHeight + 2) + 1;
     yTop = segment['yTop'];
     addRect(
       xLeft,
       yTop,
-      width,//xRight - xLeft,
+      width, //xRight - xLeft,
       trackOptions.variantHeight,
       colorToUse,
     );
