@@ -370,7 +370,12 @@ varying vec4 vColor;
       );
     }
 
-    rerender(options) {
+    forceRerender(){
+      this.rerender(this.options, true);
+    }
+
+    rerender(options, force = false) {
+
       super.rerender(options);
       this.options = options;
 
@@ -400,7 +405,8 @@ varying vec4 vColor;
         this.showInsertions !== this.options.showInsertions ||
         this.showDuplications !== this.options.showDuplications ||
         this.showInversions !== this.options.showInversions ||
-        this.minSupport !== this.options.minSupport
+        this.minSupport !== this.options.minSupport ||
+        force
       ) {
         this.maxVariantLength = this.options.maxVariantLength;
         this.minVariantLength = this.options.minVariantLength;
