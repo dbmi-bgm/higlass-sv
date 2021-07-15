@@ -31,7 +31,7 @@ export const SV_TYPE = {
   BND: 'Translocation',
 };
 
-export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
+export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampleName) => {
   const segments = [];
   const info = vcfRecord['INFO'];
 
@@ -63,8 +63,8 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       fromDisp: chrName + ':' + vcfRecord.POS,
       to: to,
       toDisp: chrName + ':' + toDisp,
-      avglen: svLength,
-      avglenAbs: Math.abs(+svLength),
+      svlen: svLength,
+      svlenAbs: Math.abs(+svLength),
       chrName,
       chrOffset,
       filter: null,
@@ -90,41 +90,61 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
     };
     
   }
-  else if(dataSource === "parliament2"){
+  else if(dataSource === "cgap"){
 
-    const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
-    const sample = vcfRecord['SAMPLES'][samplesKey];
+    let sample = null;
+    if(sampleName === false){
+      let samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
+      sample = vcfRecord['SAMPLES'][samplesKey];
+    }else if(sampleName in vcfRecord['SAMPLES']){
+      sample = vcfRecord['SAMPLES'][sampleName];
+    }else{
+      console.error("Specified sample name not found in vcf.");
+      return segments;
+    }
 
+    if(sample['GT'][0] === "0/0"){
+      return segments;
+    }
+    
     let to = 0;
     let toDisp = 0;
 
-    if (chrName === info.CHR2[0] && svType === "INS" && +vcfRecord.POS === +info.END[0]) {
-      to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
-      toDisp = vcfRecord.POS + info.AVGLEN[0];
+    if(svType === "INS"){
+      console.warn("INS encountered. This is currently not supported in CGAP mode");
+      return segments;
     }
-    else if (chrName === info.CHR2[0]) {
-      to = info.END[0] + chrOffset;
-      toDisp = info.END[0];
-    } else {
-      to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
-      toDisp = vcfRecord.POS + info.AVGLEN[0];
-    }
+
+    // if (chrName === info.CHR2[0] && svType === "INS" && +vcfRecord.POS === +info.END[0]) {
+    //   to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
+    //   toDisp = vcfRecord.POS + info.AVGLEN[0];
+    // }
+    // else if (chrName === info.CHR2[0]) {
+    //   to = info.END[0] + chrOffset;
+    //   toDisp = info.END[0];
+    // } else {
+    //   to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
+    //   toDisp = vcfRecord.POS + info.AVGLEN[0];
+    // }
+
+    to = info.END[0] + chrOffset;
+    toDisp = info.END[0];
 
     let calledByDelly = false;
     let calledByCnvnator = false;
     let calledByLumpy = false;
     let calledByBreakdancer = false;
     let calledByBreakseq2 = false;
-    let calledByManta = false;
+    let calledByManta = true;
 
-    if (info.CALLERS) {
-      calledByDelly = info.CALLERS.includes('DELLY');
-      calledByCnvnator = info.CALLERS.includes('CNVNATOR');
-      calledByLumpy = info.CALLERS.includes('LUMPY');
-      calledByBreakdancer = info.CALLERS.includes('BREAKDANCER');
-      calledByBreakseq2 = info.CALLERS.includes('BREAKSEQ');
-      calledByManta = info.CALLERS.includes('MANTA');
-    }
+    // if (info.CALLERS) {
+    //   calledByDelly = info.CALLERS.includes('DELLY');
+    //   calledByCnvnator = info.CALLERS.includes('CNVNATOR');
+    //   calledByLumpy = info.CALLERS.includes('LUMPY');
+    //   calledByBreakdancer = info.CALLERS.includes('BREAKDANCER');
+    //   calledByBreakseq2 = info.CALLERS.includes('BREAKSEQ');
+    //   calledByManta = info.CALLERS.includes('MANTA');
+    // }
 
     segment = {
       id: vcfRecord['ID'][0],
@@ -132,17 +152,15 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       from: vcfRecord.POS + chrOffset,
       fromDisp: chrName + ':' + vcfRecord.POS,
       to: to,
-      toDisp: info.CHR2[0] + ':' + toDisp,
-      avglen: info.AVGLEN[0],
-      avglenAbs: Math.abs(+info.AVGLEN[0]),
+      toDisp: chrName + ':' + toDisp,
+      svlen: info.SVLEN[0],
+      svlenAbs: Math.abs(+info.SVLEN[0]),
       chrName,
       chrOffset,
       filter: vcfRecord['FILTER'][0],
-      cipos: info.CIPOS, //PE confidence interval around POS
-      ciend: info.CIEND, //PE confidence interval around END
-      callers: info.CALLERS,
-      supp: info.SUPP[0], //Number of callers supporting the variant
-      suppVec: info.SUPP_VEC[0], //Vector of supporting samples.
+      info: info,
+      callers: ['Manta'],
+      supp: 1, //Number of callers supporting the variant
       gt: sample['GT'][0],
       row: null,
       calledByDelly: calledByDelly,
@@ -157,13 +175,23 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
   // Minimal data requirements
   else
   {
-    const samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
-    const sample = vcfRecord['SAMPLES'][samplesKey];
+
+    let sample = null;
+    if(sampleName === false){
+      let samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
+      sample = vcfRecord['SAMPLES'][samplesKey];
+    }else if(sampleName in vcfRecord['SAMPLES']){
+      sample = vcfRecord['SAMPLES'][sampleName];
+    }else{
+      console.error("Specified sample name not found in vcf.");
+      return segments;
+    }
+
     let to = info.END[0] + chrOffset;
     let toDisp = info.END[0];
-    let avglen = "-";
+    let svlen = "-";
     if('SVLEN' in info){
-      avglen = info.SVLEN[0];
+      svlen = info.SVLEN[0];
     }
 
     segment = {
@@ -173,14 +201,14 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource) => {
       fromDisp: chrName + ':' + vcfRecord.POS,
       to: to,
       toDisp: chrName + ':' + toDisp,
-      avglen: avglen,
+      svlen: svlen,
       chrName,
       chrOffset,
       filter: null,
       gt: sample['GT'][0],
       row: null
     };
-    segment['avglenAbs'] = Math.abs(segment.to - segment.from);
+    segment['svlenAbs'] = Math.abs(segment.to - segment.from);
   }
 
 

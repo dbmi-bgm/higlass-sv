@@ -110,7 +110,7 @@ function saveSvFilter(){
   const viewconf = hgApi.getViewConfig();
   viewconf.views.forEach((view) => {
     view.tracks.top.forEach((track) => {
-      if(track.type === "sv" && track.options.dataSource === "parliament2"){
+      if(track.type === "sv" && track.options.dataSource === "cgap"){
         track.options.showDelly = showDelly;
         track.options.showLumpy = showLumpy;
         track.options.showBreakdancer = showBreakdancer;
@@ -229,7 +229,7 @@ const testViewConfig =
           {
           "type": "sv",
             "options": {
-              "dataSource": "parliament2",
+              "dataSource": "cgap",
               "variantHeight": 14,
             },
             "height": 250,

@@ -54,7 +54,7 @@ class VariantAligner {
     let occupiedSpaceInRows = [];
     let filteredSegments = segments.filter((x) => x.row === null);
 
-    if(dataSource === "parliament2"){
+    if(dataSource === "cgap"){
       filteredSegments = filteredSegments.filter((x) =>
         ( (x.calledByLumpy && filter.showLumpy) || 
           (x.calledByDelly && filter.showDelly) ||

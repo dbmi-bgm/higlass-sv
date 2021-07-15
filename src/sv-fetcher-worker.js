@@ -154,6 +154,7 @@ const renderSegments = (
   // segments that are filtered out with minVariantLenght/maxVariantLenght have row=null
   const visibleVariants = svData.filter(
     (segment) =>
+      segment.to - segment.from >= 0 &&
       segment.to >= visibleTileBounds[0] &&
       segment.from <= visibleTileBounds[1],
   );
@@ -168,7 +169,7 @@ const renderSegments = (
   // Keep only the largest variants
   if (visibleVariantsFiltered.length > trackOptions.maxVariants) {
     segmentList = visibleVariantsFiltered
-      .sort((a, b) => b.avglenAbs - a.avglenAbs)
+      .sort((a, b) => b.svlenAbs - a.svlenAbs)
       .slice(0, trackOptions.maxVariants);
   }
 

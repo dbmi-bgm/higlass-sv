@@ -1,6 +1,6 @@
 {
   "name": "higlass-sv",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "HiGlass SV Track",
   "keywords": [
     "HiGlass",
@@ -78,6 +78,7 @@
     "higlass-register": "^0.1.0",
     "raw-loader": "^4.0.2",
     "threads": "v1.6.3",
-    "generic-filehandle": "^2.0.2"
+    "generic-filehandle": "^2.0.2",
+    "sanitize-html": "^2.4.0"
   }
 }

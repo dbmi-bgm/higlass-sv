@@ -7,6 +7,7 @@ import VCF from '@gmod/vcf';
 import { RemoteFile } from 'generic-filehandle';
 import { ChromosomeInfo, absToChr } from './chrominfo-utils';
 import MyWorkerWeb from 'raw-loader!../dist/worker.js';
+import sanitizeHtml from 'sanitize-html';
 
 const createColorTexture = (PIXI, colors) => {
   const colorTexRes = Math.max(2, Math.ceil(Math.sqrt(colors.length)));
@@ -260,7 +261,6 @@ const SvTrack = (HGC, ...args) => {
       this.vcfFile
         .getLines(chr, 0, chromLengths[chr], (line) => {
           const vcfRecord = tbiVCFParser.parseLine(line);
-
           // Don't load translocations for now
           // Gnomad SV does not contain BNDs
           if (vcfRecord.INFO.SVTYPE[0] === 'BND') {
@@ -272,11 +272,15 @@ const SvTrack = (HGC, ...args) => {
             chr,
             cumPositions[chrPositions[chr].id].pos,
             this.options.dataSource,
+            this.options.sampleName
           );
-          const segment = vcfJson[0];
-          this.svDataPerChromosome[chr].push(segment);
-          this.svData.push(segment);
 
+          if(vcfJson.length > 0){
+            const segment = vcfJson[0];
+            this.svDataPerChromosome[chr].push(segment);
+            this.svData.push(segment);
+          }
+          
           //vcfJson.forEach((variant) => this.svData.push(variant));
         })
         .then(() => {
@@ -669,7 +673,7 @@ varying vec4 vColor;
       );
       this.animate();
 
-      if (this.options.dataSource === 'parliament2') {
+      if (this.options.dataSource === 'cgap') {
         let callers = '-';
         if (variant.callers) {
           callers = variant.callers
@@ -678,44 +682,59 @@ varying vec4 vColor;
             .join(', ');
         }
 
+        let numMatches20Unrelated = ``;
+        if("UNRELATED" in variant.info){
+          numMatches20Unrelated = `<tr><td style="text-align: left;">Occurences in 20 unrelated individuals:</td><td>${variant.info["UNRELATED"]}</td></tr>`
+        }
+        let gnomadRows = `<tr><td style="text-align: left;">GnomAD:</td><td>Not present</td></tr>`;
+        if("AF" in variant.info && "AN" in variant.info && "AC" in variant.info){
+          gnomadRows =  `<tr><td style="text-align: left;">GnomAD AF:</td><td>${variant.info["AF"]}</td></tr>` +
+            `<tr><td style="text-align: left;">GnomAD AC:</td><td>${variant.info["AC"]}</td></tr>` +
+            `<tr><td style="text-align: left;">GnomAD AN:</td><td>${variant.info["AN"]}</td></tr>`;
+          
+        }
+
+
         let mouseOverHtml =
           `<table>` +
-          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td>Average length:</td><td>${variant.avglen}</td></tr>` +
-          `<tr><td>Genotype:</td><td>${variant.gt}</td></tr>` +
-          `<tr><td>Callers:</td><td>${callers}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          //`<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlenAbs}</td></tr>` +
+          `<tr><td style="text-align: left;">Genotype:</td><td>${variant.gt}</td></tr>` +
+          `<tr><td style="text-align: left;">Callers:</td><td>${callers}</td></tr>` +
+          //numMatches20Unrelated +
+          gnomadRows +
           `<table>`;
 
-        return mouseOverHtml;
+        return sanitizeHtml(mouseOverHtml);
       } else if (this.options.dataSource === 'gnomad') {
         let mouseOverHtml =
           `<table>` +
-          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
-          `<tr><td>Allele frequency:</td><td>${Number.parseFloat(
+          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlen}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele frequency:</td><td>${Number.parseFloat(
             variant.AF,
           ).toExponential(4)}</td></tr>` +
-          `<tr><td>Allele count:</td><td>${variant.AC}</td></tr>` +
-          `<tr><td>Allele number:</td><td>${variant.AN}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele count:</td><td>${variant.AC}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele number:</td><td>${variant.AN}</td></tr>` +
           `<table>`;
 
-        return mouseOverHtml;
+        return sanitizeHtml(mouseOverHtml);
       } else {
         let mouseOverHtml =
           `<table>` +
-          `<tr><td>Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-          `<tr><td>Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td>Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td>End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td>SV length:</td><td>${variant.avglen}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlen}</td></tr>` +
           `<table>`;
-        return mouseOverHtml;
+        return sanitizeHtml(mouseOverHtml);
       }
     }
 
@@ -806,7 +825,7 @@ varying vec4 vColor;
               (segment.to - segment.from + 1) +
               'bp, AF: ' +
               Number.parseFloat(segment.AF).toExponential();
-          } else if (this.options.dataSource === 'parliament2') {
+          } else if (this.options.dataSource === 'cgap') {
             label =
               segment.svtype +
               ', ' +
@@ -993,6 +1012,7 @@ SvTrack.config = {
     'dataSource',
     'gnomadAlleleFrequencyThreshold',
     'maxVariants',
+    'sampleName'
   ],
   defaultOptions: {
     colorScale: [
@@ -1018,9 +1038,10 @@ SvTrack.config = {
     showDuplications: true,
     showInversions: true,
     minSupport: 1,
-    dataSource: 'parliament2',
+    dataSource: 'cgap',
     gnomadAlleleFrequencyThreshold: 1,
     maxVariants: 100000,
+    sampleName: false
   },
   optionsInfo: {
     minVariantLength: {
