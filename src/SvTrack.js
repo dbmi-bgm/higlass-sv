@@ -86,7 +86,7 @@ const SvTrack = (HGC, ...args) => {
         'SVLabel',
         {
           fontFamily: 'Arial',
-          fontSize: 25,
+          fontSize: this.options.labelFontSize * 2,
           fontWeight: 500,
           strokeThickness: 0,
           fill: '#333333',
@@ -121,6 +121,7 @@ const SvTrack = (HGC, ...args) => {
       this.visibleTileBoundsOld = [0, 1];
       this.svDataPerChromosome = {};
       this.svTexts = {};
+      this.labelsForSvgExport = [];
       this.svTextWidths = {};
       this.svTextHeights = {};
       this.numFilteredVariants = 0;
@@ -802,9 +803,14 @@ varying vec4 vColor;
       this.animate();
     }
 
-    updateSvLabels() {
-      //return;
+    removeSvLabels() {
       this.textGraphics.removeChildren();
+    }
+
+    updateSvLabels() {
+
+      this.textGraphics.removeChildren();
+      this.labelsForSvgExport = [];
       const padding = 5;
 
       this.variantsInView.forEach((segment) => {
@@ -817,26 +823,27 @@ varying vec4 vColor;
 
         if (!(segment.id in this.svTexts)) {
           let label = '';
+          let segmentLength = String(segment.to - segment.from + 1).replace(/(.)(?=(\d{3})+$)/g,'$1,')
 
           if (this.options.dataSource === 'gnomad') {
             label =
               segment.svtype +
               ', ' +
-              (segment.to - segment.from + 1) +
+              segmentLength +
               'bp, AF: ' +
               Number.parseFloat(segment.AF).toExponential();
           } else if (this.options.dataSource === 'cgap') {
             label =
               segment.svtype +
               ', ' +
-              (segment.to - segment.from + 1) +
+              segmentLength +
               'bp, GT:' +
               segment.gt;
           } else {
             label =
               segment.svtype +
               ', ' +
-              (segment.to - segment.from + 1) +
+              segmentLength +
               'bp, GT:' +
               segment.gt;
           }
@@ -876,8 +883,16 @@ varying vec4 vColor;
           labelAlpha = alphaScale(margin);
         }
 
+        this.labelsForSvgExport.push({
+          text: this.svTexts[segment.id]._text,
+          alpha: this.svTexts[segment.id].alpha,
+          x: this.svTexts[segment.id].position.x,
+          y: this.svTexts[segment.id].position.y + this.options.labelFontSize - 1,
+        });
+
         this.svTexts[segment.id].alpha = labelAlpha;
         this.textGraphics.addChild(this.svTexts[segment.id]);
+        
       });
     }
 
@@ -944,24 +959,18 @@ varying vec4 vColor;
         `translate(${this.pMain.position.x},${this.pMain.position.y}) scale(${this.pMain.scale.x},${this.pMain.scale.y})`,
       );
 
-      const gSegment = document.createElement('g');
-
-      gSegment.setAttribute(
-        'transform',
-        `translate(${this.segmentGraphics.position.x},${this.segmentGraphics.position.y})` +
-          `scale(${this.segmentGraphics.scale.x},${this.segmentGraphics.scale.y})`,
-      );
-
-      output.appendChild(gSegment);
+      // We are making a "screenshot" but without the label text, as this will result in poor quality.
+      this.removeSvLabels()
 
       if (this.segmentGraphics) {
+        const gSegment = document.createElement('g');
+        output.appendChild(gSegment);
         const b64string = HGC.services.pixiRenderer.plugins.extract.base64(
           // this.segmentGraphics, 'image/png', 1,
           this.pMain.parent.parent,
         );
 
         const gImage = document.createElement('g');
-
         gImage.setAttribute('transform', `translate(0,0)`);
 
         const image = document.createElement('image');
@@ -972,9 +981,32 @@ varying vec4 vColor;
         );
         gImage.appendChild(image);
         gSegment.appendChild(gImage);
-
-        // gSegment.appendChild(image);
       }
+
+      this.updateSvLabels() // Regenerate labels after making the screenshot
+
+      this.labelsForSvgExport
+        .filter((text) => text.alpha > 0)
+        .forEach((text) => {
+          const g = document.createElement('g');
+          const t = document.createElement('text');
+          t.setAttribute('text-anchor', 'left');
+          t.setAttribute('font-family', "Arial");
+          t.setAttribute('font-size', this.options.labelFontSize+`px`);
+          t.setAttribute('opacity', text.alpha);
+
+          g.setAttribute('transform', `scale(1,1)`);
+          t.setAttribute('fill', "#333333");
+
+          t.innerHTML = text.text;
+
+          g.appendChild(t);
+          g.setAttribute(
+            'transform',
+            `translate(${text.x},${text.y})scale(1,1)`,
+          );
+          output.appendChild(g);
+        });
 
       return [base, base];
     }
@@ -996,6 +1028,7 @@ SvTrack.config = {
     'colorScale',
     'showMousePosition',
     'variantHeight',
+    'labelFontSize',
     'minVariantLength',
     'maxVariantLength',
     'showDelly',
@@ -1025,6 +1058,7 @@ SvTrack.config = {
     ],
     showMousePosition: false,
     variantHeight: 14,
+    labelFontSize: 12.5,
     minVariantLength: 1,
     maxVariantLength: Number.MAX_SAFE_INTEGER,
     showDelly: true,
