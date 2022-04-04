@@ -34,7 +34,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.32.1/react-bootstrap.min.js"></script>
 </head>
 <body>
-  <div class="mt-3 mx-4 text-secondary small">
+  <!-- <div class="mt-3 mx-4 text-secondary small">
     SV FILTER
   </div>
   <div class="mx-4 p-2 border rounded">
@@ -110,7 +110,7 @@
       <div id="sv-filter-btn" onclick="saveSvFilter()" class="btn btn-primary btn-sm mb-2">Save</div>
     </form>
     
-  </div>
+  </div> -->
   <div>
     <div id="demo"></div>
   </div>
@@ -171,7 +171,8 @@ const testViewConfig =
   "views": [
     {
 
-      "initialXDomain": [1000006087.639179552, 1000056405.897125244],
+      "initialXDomain": [248188422.7816493,
+        248685423.3172813],
       //"initialXDomain": [3376000,3390000],
 
 
@@ -252,28 +253,47 @@ const testViewConfig =
           //   "width": 568,
           //   "height": 18
           // },
+          
           {
           "type": "sv",
             "options": {
-              "dataSource": "cgap",
-              "sampleName": "NA24143_sample"
+              "dataSource": "cgap-cnv",
+              "sampleName": "proband"
+
+              
             },
             "height": 150,
-            "uid": "vcf2",
+            "uid": "vcfHG002",
             "data": {
               "type": "vcf",
-              // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
-              // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
-              "vcfUrl": "https://aveit.s3.amazonaws.com/misc/GAPFIAFHF16S.vcf.gz",
-              "tbiUrl": "https://aveit.s3.amazonaws.com/misc/GAPFIAFHF16S.vcf.gz.tbi",
+              "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/higlass_GAPFI5TZV9GJ_HG002_mod.vcf.gz",
+              "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/higlass_GAPFI5TZV9GJ_HG002_mod.vcf.gz.tbi",
               "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
             },
             "width": 470
           },
+          // {
+          // "type": "sv",
+          //   "options": {
+          //     "dataSource": "cgap-sv",
+          //     "sampleName": "NA24143_sample"
+          //   },
+          //   "height": 150,
+          //   "uid": "vcf2",
+          //   "data": {
+          //     "type": "vcf",
+          //     // "vcfUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz",
+          //     // "tbiUrl": "https://aveit.s3.amazonaws.com/higlass/vcf/variants-sv.vcf.gz.tbi",
+          //     "vcfUrl": "https://aveit.s3.amazonaws.com/misc/GAPFIAFHF16S.vcf.gz",
+          //     "tbiUrl": "https://aveit.s3.amazonaws.com/misc/GAPFIAFHF16S.vcf.gz.tbi",
+          //     "chromSizesUrl": "https://aveit.s3.amazonaws.com/higlass/data/sequence/hg38.mod.chrom.sizes",
+          //   },
+          //   "width": 470
+          // },
           {
           "type": "sv",
             "options": {
-              "dataSource": "cgap",
+              "dataSource": "cgap-sv",
               "sampleName": "NA24149_sample"
             },
             "height": 150,

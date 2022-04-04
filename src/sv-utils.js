@@ -1,3 +1,5 @@
+import {format} from 'd3-format';
+
 export const PILEUP_COLORS = {
   VARIANT: [0.3, 0.3, 0.3, 0.6], // gray for the variant background
   LINE: [0.9, 0.9, 0.9, 1], // gray for the variant background
@@ -40,6 +42,13 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
   const svType = info.SVTYPE[0];
 
   let segment = {};
+
+  if(dataSource === "cgap-sv" || dataSource === "cgap-cnv"){
+    if(svType === "INS"){
+      console.warn("INS encountered. This is currently not supported in CGAP mode");
+      return segments;
+    }
+  }
   
   if(dataSource === "gnomad"){
     let from = vcfRecord.POS + chrOffset;
@@ -60,9 +69,9 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
       id: vcfRecord['ID'][0],
       svtype: svType,
       from: from,
-      fromDisp: chrName + ':' + vcfRecord.POS,
+      fromDisp: chrName + ':' + format(",.0f")(vcfRecord.POS),
       to: to,
-      toDisp: chrName + ':' + toDisp,
+      toDisp: chrName + ':' + format(",.0f")(toDisp),
       svlen: svLength,
       svlenAbs: Math.abs(+svLength),
       chrName,
@@ -90,7 +99,7 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
     };
     
   }
-  else if(dataSource === "cgap"){
+  else if(dataSource === "cgap-sv"){
 
     let sample = null;
     if(sampleName === false){
@@ -109,23 +118,6 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
     
     let to = 0;
     let toDisp = 0;
-
-    if(svType === "INS"){
-      console.warn("INS encountered. This is currently not supported in CGAP mode");
-      return segments;
-    }
-
-    // if (chrName === info.CHR2[0] && svType === "INS" && +vcfRecord.POS === +info.END[0]) {
-    //   to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
-    //   toDisp = vcfRecord.POS + info.AVGLEN[0];
-    // }
-    // else if (chrName === info.CHR2[0]) {
-    //   to = info.END[0] + chrOffset;
-    //   toDisp = info.END[0];
-    // } else {
-    //   to = vcfRecord.POS + chrOffset + info.AVGLEN[0];
-    //   toDisp = vcfRecord.POS + info.AVGLEN[0];
-    // }
 
     to = info.END[0] + chrOffset;
     toDisp = info.END[0];
@@ -150,9 +142,9 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
       id: vcfRecord['ID'][0],
       svtype: svType,
       from: vcfRecord.POS + chrOffset,
-      fromDisp: chrName + ':' + vcfRecord.POS,
+      fromDisp: chrName + ':' + format(",.0f")(vcfRecord.POS),
       to: to,
-      toDisp: chrName + ':' + toDisp,
+      toDisp: chrName + ':' + format(",.0f")(toDisp),
       svlen: info.SVLEN[0],
       svlenAbs: Math.abs(+info.SVLEN[0]),
       chrName,
@@ -169,8 +161,55 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
       calledByBreakdancer: calledByBreakdancer,
       calledByBreakseq2: calledByBreakseq2,
       calledByManta: calledByManta,
+      isGnomadPresenceCheckedByCaller: true,
     };
 
+  }
+  else if(dataSource === "cgap-cnv"){
+
+    let sample = null;
+    if(sampleName === false){
+      let samplesKey = Object.keys(vcfRecord['SAMPLES'])[0];
+      sample = vcfRecord['SAMPLES'][samplesKey];
+    }else if(sampleName in vcfRecord['SAMPLES']){
+      sample = vcfRecord['SAMPLES'][sampleName];
+    }else{
+      console.error("Specified sample name not found in vcf.");
+      return segments;
+    }
+
+    if(sample['GT'][0] === "0/0"){
+      return segments;
+    }
+
+    let to = 0;
+    let toDisp = 0;
+
+    to = info.END[0] + chrOffset;
+    toDisp = info.END[0];
+
+    const copyRatio = "BICseq2_log2_copyRatio" in info ? info["BICseq2_log2_copyRatio"][0] : null;
+
+    segment = {
+      id: vcfRecord['ID'][0],
+      svtype: svType,
+      from: vcfRecord.POS + chrOffset,
+      fromDisp: chrName + ':' + format(",.0f")(vcfRecord.POS),
+      to: to,
+      toDisp: chrName + ':' + format(",.0f")(toDisp),
+      svlen: info.SVLEN[0],
+      svlenAbs: Math.abs(+info.SVLEN[0]),
+      chrName,
+      chrOffset,
+      filter: vcfRecord['FILTER'][0],
+      info: info,
+      callers: ['BIC-seq2'],
+      supp: 1, //Number of callers supporting the variant
+      gt: sample['GT'][0],
+      row: null,
+      isGnomadPresenceCheckedByCaller: false,
+      copyRatio: copyRatio,
+    };
   }
   // Minimal data requirements
   else
@@ -198,9 +237,9 @@ export const vcfRecordToJson = (vcfRecord, chrName, chrOffset, dataSource, sampl
       id: vcfRecord['ID'][0],
       svtype: svType,
       from: vcfRecord.POS + chrOffset,
-      fromDisp: chrName + ':' + vcfRecord.POS,
+      fromDisp: chrName + ':' + format(",.0f")(vcfRecord.POS),
       to: to,
-      toDisp: chrName + ':' + toDisp,
+      toDisp: chrName + ':' + format(",.0f")(toDisp),
       svlen: svlen,
       chrName,
       chrOffset,

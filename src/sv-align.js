@@ -54,7 +54,7 @@ class VariantAligner {
     let occupiedSpaceInRows = [];
     let filteredSegments = segments.filter((x) => x.row === null);
 
-    if(dataSource === "cgap"){
+    if(dataSource === "cgap-sv"){
       filteredSegments = filteredSegments.filter((x) =>
         ( (x.calledByLumpy && filter.showLumpy) || 
           (x.calledByDelly && filter.showDelly) ||
@@ -87,23 +87,7 @@ class VariantAligner {
 
   }
 
-  // filterCaller(segment, filter){
-  //   if(segment.callers === undefined)
-  //     return true;
-
-  //   const numCallers = segment.callers.length;
-  //   let score = 0;
-  //   if(filter.showLumpy && segment.calledByLumpy){
-  //     score += 1;
-  //   }else if(filter.showDelly && segment.calledByDelly){
-  //     score += 1;
-  //   }else if(filter.showBreakdancer && segment.calledByBreakdancer){
-  //     score += 1;
-  //   }else if(filter.showCnvnator && segment.calledByCnvnator){
-  //     score += 1;
-  //   }
-    
-  // }
+ 
 
   
 }

@@ -148,9 +148,9 @@ const renderSegments = (
   scaleRange,
   trackOptions,
   svData,
+  cnvSettings,
 ) => {
   //const t1 = currTime();
-
   // segments that are filtered out with minVariantLenght/maxVariantLenght have row=null
   const visibleVariants = svData.filter(
     (segment) =>
@@ -253,6 +253,7 @@ const renderSegments = (
     return 0;
   });
   let lastSegment = null;
+  
 
   segmentList.forEach((segment, j) => {
     // Ignore duplicates - can happen when variants span more than one tile
@@ -262,6 +263,10 @@ const renderSegments = (
     //console.log(segment)
 
     lastSegment = segment;
+
+    if(trackOptions.dataSource === "cgap-cnv" && (segment.copyRatio === undefined || segment.copyRatio === null)){
+      return;
+    }
 
     const from = xScale(segment.from);
     const to = xScale(segment.to);
@@ -308,6 +313,24 @@ const renderSegments = (
     }
     segment['yTop'] = segment.row * (trackOptions.variantHeight + 2) + 1;
     yTop = segment['yTop'];
+
+    // For CNVs we ignore the row information and place the rects accoring to the copy ratio
+    if(trackOptions.dataSource === "cgap-cnv"){
+      const trackHeight = cnvSettings.trackHeight;
+      const padding = cnvSettings.verticalPadding;
+      const copyRatioToY = scaleLinear()
+        .domain([-2.0, 2.0])
+        .range([trackHeight-padding - trackOptions.variantHeight/2, padding - trackOptions.variantHeight/2])
+        .clamp(false);
+      // We artificially clamp all values at -2.8 / 2.8 so that they appear above/below the last horizontal line
+      const copyRatio = Math.max(Math.min(segment.copyRatio, 2.8), -2.8);
+      segment['yTop'] = copyRatioToY(copyRatio);
+      console.log(segment['yTop'])
+      yTop = segment['yTop'];
+
+    }
+    
+
     addRect(
       xLeft,
       yTop,

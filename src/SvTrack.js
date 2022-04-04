@@ -8,6 +8,7 @@ import { RemoteFile } from 'generic-filehandle';
 import { ChromosomeInfo, absToChr } from './chrominfo-utils';
 import MyWorkerWeb from 'raw-loader!../dist/worker.js';
 import sanitizeHtml from 'sanitize-html';
+import {format} from 'd3-format';
 
 const createColorTexture = (PIXI, colors) => {
   const colorTexRes = Math.max(2, Math.ceil(Math.sqrt(colors.length)));
@@ -65,6 +66,9 @@ function isIn(as) {
   };
 }
 
+const CNV_VERTICAL_PADDING = 35;
+const LEGEND_WIDTH = 56;
+
 const SvTrack = (HGC, ...args) => {
   if (!new.target) {
     throw new Error(
@@ -95,6 +99,18 @@ const SvTrack = (HGC, ...args) => {
       );
 
       HGC.libraries.PIXI.BitmapFont.from(
+        'LegendLabel',
+        {
+          fontFamily: 'Arial',
+          fontSize: this.options.labelFontSize * 2,
+          fontWeight: 400,
+          strokeThickness: 0,
+          fill: '#333333',
+        },
+        { chars: HGC.libraries.PIXI.BitmapFont.ASCII },
+      );
+
+      HGC.libraries.PIXI.BitmapFont.from(
         'FilterLabel',
         {
           fontFamily: 'Arial',
@@ -109,9 +125,7 @@ const SvTrack = (HGC, ...args) => {
       const chromInfoDataPromise = this.getChromInfoDataPromise(
         context.dataConfig.chromSizesUrl,
       );
-      // const chromInfoDataPromise = this.getChromInfoDataPromise(context.dataConfig.chromSizesUrl).then((value) => {
-      //   this.chromInfo = value;
-      // });
+  
       this.variantAligner = new VariantAligner();
 
       this.svData = [];
@@ -127,22 +141,20 @@ const SvTrack = (HGC, ...args) => {
       this.numFilteredVariants = 0;
       this.numVisibleVariants = 0;
 
+      this.axisGraphics = new HGC.libraries.PIXI.Graphics();
+      this.horizontalLinesGraphics = new HGC.libraries.PIXI.Graphics();
+
       this.textGraphics = new HGC.libraries.PIXI.Graphics();
       this.pForeground.addChild(this.textGraphics);
 
       this.labelGraphics = new HGC.libraries.PIXI.Graphics();
       this.pForeground.addChild(this.labelGraphics);
 
-      // this.dataPromises = this.getSvDataPromises(context.dataConfig);
-
       this.vcfFile = new TabixIndexedFile({
         filehandle: new RemoteFile(context.dataConfig.vcfUrl),
         tbiFilehandle: new RemoteFile(context.dataConfig.tbiUrl),
       });
       const vcfHeader = this.vcfFile.getHeader();
-      // const vcfHeader = this.vcfFile.getHeader().then((value) => {
-      //   this.vcfHeader = value;
-      // });
 
       Promise.all([chromInfoDataPromise, vcfHeader]).then((values) => {
         this.chromInfo = values[0];
@@ -208,6 +220,16 @@ const SvTrack = (HGC, ...args) => {
 
       this.pLabel.addChild(this.loadingText);
       this.setUpShaderAndTextures();
+
+      this.legendWidth = 0;
+      if(this.options.dataSource === "cgap-cnv"){
+        this.legendWidth = LEGEND_WIDTH;
+        this.loadingText.x = 10 + this.legendWidth;
+        this.loadingText.y = 10;
+      }
+        
+      this.HGC = HGC;
+
     }
 
     initTile(tile) {
@@ -255,7 +277,7 @@ const SvTrack = (HGC, ...args) => {
       });
     }
 
-    // This can only be called then chromInfo has loaded
+    // This can only be called when chromInfo has loaded
     loadChrSvData(chr) {
       const tbiVCFParser = new VCF({ header: this.vcfHeader });
       const { chromLengths, cumPositions, chrPositions } = this.chromInfo;
@@ -281,17 +303,10 @@ const SvTrack = (HGC, ...args) => {
             this.svDataPerChromosome[chr].push(segment);
             this.svData.push(segment);
           }
-          
-          //vcfJson.forEach((variant) => this.svData.push(variant));
+
         })
         .then(() => {
-          // this.svData = [];
-          // this.visibleChromosomes.forEach((chr) => {
-          //   if (chr in this.svDataPerChromosome) {
-          //     this.svData = this.svData.concat(this.svDataPerChromosome[chr])
-          //   }
-          // });
-
+         
           this.variantAligner.segmentsToRows(
             this.svData,
             this.getSegmentsToRowFilter(),
@@ -501,6 +516,76 @@ varying vec4 vColor;
       }
     }
 
+    // Relevant for cgap-cnv only
+    createHorizontalLines(){
+      this.pMain.removeChild(this.horizontalLinesGraphics);
+      this.horizontalLinesGraphics.removeChildren();
+      this.horizontalLinesGraphics.clear();
+      this.horizontalLinesGraphics.beginFill(this.HGC.utils.colorToHex('#ebebeb'));
+
+      const legendHeight = this.dimensions[1] - 2*CNV_VERTICAL_PADDING;
+      const trackWidth = this.dimensions[0];
+      const baseLineLevel = legendHeight * 0.5 + CNV_VERTICAL_PADDING;
+      const supportLinesLevel = [0, 0.25, 0.5, 0.75, 1].map(x => legendHeight * x + CNV_VERTICAL_PADDING);
+      supportLinesLevel.forEach((level) => {
+        this.horizontalLinesGraphics.drawRect(10, level, trackWidth, 1);
+      });
+      this.horizontalLinesGraphics.beginFill(this.HGC.utils.colorToHex('#dedede'));
+      this.horizontalLinesGraphics.drawRect(10, baseLineLevel, trackWidth, 1);
+
+      this.pMain.addChild(this.horizontalLinesGraphics);
+    }
+
+    // Relevant for cgap-cnv only
+    createAxisAndLabels(){
+      this.pForeground.removeChild(this.axisGraphics);
+      this.axisGraphics.removeChildren();
+      this.axisGraphics.clear();
+      this.axisGraphics.beginFill(this.HGC.utils.colorToHex('#ebebeb'));
+
+      const trackHeight = this.dimensions[1];
+      const legendHeight = this.dimensions[1] - 2*CNV_VERTICAL_PADDING;
+      const trackWidth = this.dimensions[0];
+      const supportLinesLevel = [0, 0.25, 0.5, 0.75, 1].map(x => legendHeight * x + CNV_VERTICAL_PADDING);
+      const baseLineLevel = legendHeight * 0.5 + CNV_VERTICAL_PADDING;
+
+      this.axisGraphics.beginFill(this.HGC.utils.colorToHex('#ffffff'));
+      this.axisGraphics.drawRect(0, 0, this.legendWidth, trackHeight);
+
+      this.axisGraphics.beginFill(this.HGC.utils.colorToHex('#333333'));
+      this.axisGraphics.drawRect(this.legendWidth - 6, CNV_VERTICAL_PADDING, 1, legendHeight);
+      supportLinesLevel.forEach((level) => {
+        this.axisGraphics.drawRect(this.legendWidth - 10, level, 5, 1);
+      });
+      this.axisGraphics.drawRect(this.legendWidth - 10, baseLineLevel, 5, 1);
+
+      const legendLabels = ["2", "1", "0", "-1", "-2"];
+      legendLabels.forEach((label,i) => {
+        const btext = new this.HGC.libraries.PIXI.BitmapText(label, {
+          fontName: 'LegendLabel',
+        });
+        btext.width = btext.width / 2;
+        btext.height = btext.height / 2;
+        btext.anchor.set(1,0);
+        btext.position.y = supportLinesLevel[i] - btext.height/2;
+        btext.position.x = this.legendWidth - 16;
+        this.axisGraphics.addChild(btext);
+      });
+
+      const btext = new this.HGC.libraries.PIXI.BitmapText("Copy ratio (log2)", {
+        fontName: 'LegendLabel',
+      });
+      btext.width = btext.width / 2;
+      btext.height = btext.height / 2;
+      btext.position.y = trackHeight/2 + btext.width/2;
+      btext.position.x = 5;
+      btext.anchor.set(0,0);
+      btext.angle = -90;
+      this.axisGraphics.addChild(btext);
+      
+      this.pForeground.addChild(this.axisGraphics);
+    }
+
     updateExistingGraphics() {
       this.loadingText.text = 'Rendering...';
 
@@ -523,6 +608,11 @@ varying vec4 vColor;
         return;
       }
 
+      const cnvSettings = {
+        trackHeight: this.dimensions[1],
+        verticalPadding: CNV_VERTICAL_PADDING,
+      }
+
       this.worker.then((tileFunctions) => {
         tileFunctions
           .renderSegments(
@@ -531,6 +621,7 @@ varying vec4 vColor;
             this._xScale.range(),
             this.options,
             this.svData,
+            cnvSettings,
           )
           .then((toRender) => {
             this.loadingText.visible = false;
@@ -544,6 +635,12 @@ varying vec4 vColor;
             this.drawError();
             this.animate();
 
+            if(this.options.dataSource === "cgap-cnv"){
+              // Horizontal lines have to be rendered before the segments
+              // so that the segments are on top
+              this.createHorizontalLines();
+            }
+            
             this.positions = new Float32Array(toRender.positionsBuffer);
             this.colors = new Float32Array(toRender.colorsBuffer);
             this.ixs = new Int32Array(toRender.ixBuffer);
@@ -585,6 +682,10 @@ varying vec4 vColor;
 
             this.pMain.addChild(newGraphics);
             this.segmentGraphics = newGraphics;
+
+            if(this.options.dataSource === "cgap-cnv"){
+              this.createAxisAndLabels();
+            }
 
             // remove and add again to place on top
             this.pMain.removeChild(this.mouseOverGraphics);
@@ -638,7 +739,6 @@ varying vec4 vColor;
     }
 
     getMouseOverHtml(trackX, trackYIn) {
-      // const trackY = this.valueScaleTransform.invert(track)
       this.mouseOverGraphics.clear();
       // Prevents 'stuck' read outlines when hovering quickly
       requestAnimationFrame(this.animate);
@@ -659,6 +759,9 @@ varying vec4 vColor;
       const variantFrom = this._xScale(variant.from);
       const variantTo = this._xScale(variant.to);
 
+      const formatFixed = format(".2f");
+      const formatExp = format(".2e");
+
       // draw outline
       const width = variantTo - variantFrom;
 
@@ -674,70 +777,110 @@ varying vec4 vColor;
       );
       this.animate();
 
-      if (this.options.dataSource === 'cgap') {
+      if (this.options.dataSource === 'cgap-sv' || this.options.dataSource === 'cgap-cnv') {
         let callers = '-';
         if (variant.callers) {
           callers = variant.callers
-            .map((caller) => caller.toLowerCase())
+            //.map((caller) => caller.toLowerCase())
             .map((caller) => this.capitalizeFirstLetter(caller))
             .join(', ');
         }
 
         let numMatches20Unrelated = ``;
         if("UNRELATED" in variant.info){
-          numMatches20Unrelated = `<tr><td style="text-align: left;">Occurences in 20 unrelated individuals:</td><td>${variant.info["UNRELATED"]}</td></tr>`
+          numMatches20Unrelated = `<tr><td style="text-align: left;">Occurences in 20 unrelated individuals:</td><td style="text-align: left;">${variant.info["UNRELATED"]}</td></tr>`
         }
-        let gnomadRows = `<tr><td style="text-align: left;">GnomAD:</td><td>Not present</td></tr>`;
+        let gnomadRows = `<tr><td style="text-align: left;">GnomAD:</td><td style="text-align: left;">Not present</td></tr>`;
         if("AF" in variant.info && "AN" in variant.info && "AC" in variant.info){
-          gnomadRows =  `<tr><td style="text-align: left;">GnomAD AF:</td><td>${variant.info["AF"]}</td></tr>` +
-            `<tr><td style="text-align: left;">GnomAD AC:</td><td>${variant.info["AC"]}</td></tr>` +
-            `<tr><td style="text-align: left;">GnomAD AN:</td><td>${variant.info["AN"]}</td></tr>`;
-          
+          gnomadRows =  `<tr><td style="text-align: left;">GnomAD AF:</td><td style="text-align: left;">${variant.info["AF"]}</td></tr>` +
+            `<tr><td style="text-align: left;">GnomAD AC:</td><td style="text-align: left;">${variant.info["AC"]}</td></tr>` +
+            `<tr><td style="text-align: left;">GnomAD AN:</td><td style="text-align: left;">${variant.info["AN"]}</td></tr>`;
+        }
+        if(!variant.isGnomadPresenceCheckedByCaller){
+          gnomadRows = "";
+        }
+
+        let cnvInfo = ``;
+        if(this.options.dataSource === 'cgap-cnv'){
+
+          cnvInfo = `
+            <tr><td style="text-align: left; padding-top: 8px"><strong>BIC-seq2 statistics</strong></td><td></td></tr>
+            <tr><td style="text-align: left;">Observed reads:</td><td style="text-align: left;">${variant.info["BICseq2_observed_reads"] || "-"}</td></tr>
+            <tr><td style="text-align: left;">Expected reads:</td><td style="text-align: left;">${variant.info["BICseq2_expected_reads"] || "-"}</td></tr>
+            <tr><td style="text-align: left;">Copy ratio (log2):</td><td style="text-align: left;">${formatFixed(variant.info["BICseq2_log2_copyRatio"]) || "-"}</td></tr>
+            <tr><td style="text-align: left;">p-value</td><td style="text-align: left;">${formatExp(variant.info["BICseq2_pvalue"]) || "-"}</td></tr>`;
         }
 
 
         let mouseOverHtml =
           `<table>` +
-          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant type:</td><td style="text-align: left;">${SV_TYPE[variant.svtype]}</td></tr>` +
           //`<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlenAbs}</td></tr>` +
-          `<tr><td style="text-align: left;">Genotype:</td><td>${variant.gt}</td></tr>` +
-          `<tr><td style="text-align: left;">Callers:</td><td>${callers}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td style="text-align: left;">${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td style="text-align: left;">${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td style="text-align: left;">${variant.svlenAbs}</td></tr>` +
+          `<tr><td style="text-align: left;">Genotype:</td><td style="text-align: left;">${variant.gt}</td></tr>` +
+          `<tr><td style="text-align: left;">Callers:</td><td style="text-align: left;">${callers}</td></tr>` +
           //numMatches20Unrelated +
           gnomadRows +
+          cnvInfo + 
           `<table>`;
 
-        return sanitizeHtml(mouseOverHtml);
+        return this.getSanitizesMouseOverHtml(mouseOverHtml);
       } else if (this.options.dataSource === 'gnomad') {
         let mouseOverHtml =
           `<table>` +
-          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-          `<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlen}</td></tr>` +
-          `<tr><td style="text-align: left;">Allele frequency:</td><td>${Number.parseFloat(
+          `<tr><td style="text-align: left;">Variant type:</td><td style="text-align: left;">${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant ID:</td><td style="text-align: left;">${variant.id}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td style="text-align: left;">${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td style="text-align: left;">${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td style="text-align: left;">${variant.svlen}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele frequency:</td><td style="text-align: left;">${Number.parseFloat(
             variant.AF,
           ).toExponential(4)}</td></tr>` +
-          `<tr><td style="text-align: left;">Allele count:</td><td>${variant.AC}</td></tr>` +
-          `<tr><td style="text-align: left;">Allele number:</td><td>${variant.AN}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele count:</td><td style="text-align: left;">${variant.AC}</td></tr>` +
+          `<tr><td style="text-align: left;">Allele number:</td><td style="text-align: left;">${variant.AN}</td></tr>` +
           `<table>`;
 
-        return sanitizeHtml(mouseOverHtml);
+        return this.getSanitizesMouseOverHtml(mouseOverHtml);
       } else {
         let mouseOverHtml =
           `<table>` +
-          `<tr><td style="text-align: left;">Variant type:</td><td>${SV_TYPE[variant.svtype]}</td></tr>` +
-          `<tr><td style="text-align: left;">Variant ID:</td><td>${variant.id}</td></tr>` +
-          `<tr><td style="text-align: left;">Start position:</td><td>${variant.fromDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">End position:</td><td>${variant.toDisp}</td></tr>` +
-          `<tr><td style="text-align: left;">SV length:</td><td>${variant.svlen}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant type:</td><td style="text-align: left;">${SV_TYPE[variant.svtype]}</td></tr>` +
+          `<tr><td style="text-align: left;">Variant ID:</td><td style="text-align: left;">${variant.id}</td></tr>` +
+          `<tr><td style="text-align: left;">Start position:</td><td style="text-align: left;">${variant.fromDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">End position:</td><td style="text-align: left;">${variant.toDisp}</td></tr>` +
+          `<tr><td style="text-align: left;">SV length:</td><td style="text-align: left;">${variant.svlen}</td></tr>` +
           `<table>`;
-        return sanitizeHtml(mouseOverHtml);
+        return this.getSanitizesMouseOverHtml(mouseOverHtml);
       }
     }
+
+    getSanitizesMouseOverHtml(mouseOverHtml){
+      return sanitizeHtml(mouseOverHtml,{
+        allowedTags: ['table','tr','td','strong','br'],
+        allowedAttributes: {
+          'tr': ["style"],
+          'td': ["colspan", "style"],
+          'table': ["style"],
+        },
+        allowedStyles: {
+          'tr': {
+            'background-color': [/^#(0x)?[0-9a-f]+$/i, /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/],
+            'border': [/^1px solid #333333$/],
+          },
+          'td': {
+            'text-align': [/^left$/, /^right$/, /^center$/],
+            'padding-top': [/^\d+(?:px|em|%)$/],
+          },
+          'table': {
+            'margin-top': [/^\d+(?:px|em|%)$/],
+            'border': [/^1px solid #333333$/],
+          }
+        }
+      });
+    }
+    
 
     capitalizeFirstLetter(string) {
       return string.charAt(0).toUpperCase() + string.slice(1);
@@ -773,7 +916,7 @@ varying vec4 vColor;
       [this.pMouseOver.position.x, this.pMouseOver.position.y] = this.position;
 
       [this.loadingText.x, this.loadingText.y] = newPosition;
-      this.loadingText.x += 30;
+      this.loadingText.x += 10 + this.legendWidth;
     }
 
     movedY(dY) {
@@ -832,19 +975,19 @@ varying vec4 vColor;
               segmentLength +
               'bp, AF: ' +
               Number.parseFloat(segment.AF).toExponential();
-          } else if (this.options.dataSource === 'cgap') {
+          } else if (this.options.dataSource === 'cgap-sv' || this.options.dataSource === 'cgap-cnv') {
             label =
               segment.svtype +
               ', ' +
               segmentLength +
-              'bp, GT:' +
+              'bp, Genotype: ' +
               segment.gt;
           } else {
             label =
               segment.svtype +
               ', ' +
               segmentLength +
-              'bp, GT:' +
+              'bp, Genotype: ' +
               segment.gt;
           }
           this.svTexts[segment.id] = new HGC.libraries.PIXI.BitmapText(label, {
@@ -852,19 +995,25 @@ varying vec4 vColor;
           });
           this.svTexts[segment.id].width = this.svTexts[segment.id].width / 2;
           this.svTexts[segment.id].height = this.svTexts[segment.id].height / 2;
-          this.svTexts[segment.id].position.y =
-            segment.row * (this.options.variantHeight + 2) + 1;
+          // this.svTexts[segment.id].position.y =
+          //   segment.row * (this.options.variantHeight + 2) + 1;
+          this.svTexts[segment.id].position.y = segment.yTop;
         }
         const textWidth = this.svTexts[segment.id].width;
 
         const margin = segmentWidth - textWidth - 2 * padding;
         if (margin < 0) return;
 
-        if (segFrom >= 0) {
-          this.svTexts[segment.id].position.x = segFrom + padding;
-        } else if (textWidth + 2 * padding < segTo) {
+        const doesLabelFitInBox =
+          textWidth + 2 * padding < segTo - this.legendWidth;
+        if (segFrom >= 0 && doesLabelFitInBox) {
           this.svTexts[segment.id].position.x = Math.max(
-            padding,
+            this.legendWidth + padding,
+            segFrom + padding,
+          );
+        } else if (doesLabelFitInBox) {
+          this.svTexts[segment.id].position.x = Math.max(
+            this.legendWidth + padding,
             segFrom + padding,
           );
         } else {
@@ -892,7 +1041,7 @@ varying vec4 vColor;
 
         this.svTexts[segment.id].alpha = labelAlpha;
         this.textGraphics.addChild(this.svTexts[segment.id]);
-        
+
       });
     }
 
@@ -1072,7 +1221,7 @@ SvTrack.config = {
     showDuplications: true,
     showInversions: true,
     minSupport: 1,
-    dataSource: 'cgap',
+    dataSource: 'cgap-sv',
     gnomadAlleleFrequencyThreshold: 1,
     maxVariants: 100000,
     sampleName: false
