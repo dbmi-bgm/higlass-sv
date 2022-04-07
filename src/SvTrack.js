@@ -530,7 +530,7 @@ varying vec4 vColor;
       supportLinesLevel.forEach((level) => {
         this.horizontalLinesGraphics.drawRect(10, level, trackWidth, 1);
       });
-      this.horizontalLinesGraphics.beginFill(this.HGC.utils.colorToHex('#dedede'));
+      this.horizontalLinesGraphics.beginFill(this.HGC.utils.colorToHex('#999999'));
       this.horizontalLinesGraphics.drawRect(10, baseLineLevel, trackWidth, 1);
 
       this.pMain.addChild(this.horizontalLinesGraphics);
