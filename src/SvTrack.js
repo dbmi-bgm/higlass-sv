@@ -604,6 +604,11 @@ varying vec4 vColor;
       this.updateLoadingText();
 
       if (this.svData.length === 0) {
+        if(this.options.dataSource === "cgap-cnv"){
+          // Even if there is no data, we still want to render the grid lines
+          this.createHorizontalLines();
+          this.createAxisAndLabels();
+        }
         console.log('SV data has not loaded yet.');
         return;
       }
